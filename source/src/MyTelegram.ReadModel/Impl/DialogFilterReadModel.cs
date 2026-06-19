@@ -20,6 +20,7 @@ public class DialogFilterReadModel : ReadModelBase, IDialogFilterReadModel,
         OwnerUserId = domainEvent.AggregateEvent.OwnerUserId;
         FolderId = domainEvent.AggregateEvent.Filter.Id;
         Filter = domainEvent.AggregateEvent.Filter;
+        ImportedFromSlug = domainEvent.AggregateEvent.Filter.ImportedFromSlug;
 
         return Task.CompletedTask;
     }

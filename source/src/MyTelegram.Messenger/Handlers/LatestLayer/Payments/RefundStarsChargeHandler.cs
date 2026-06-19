@@ -16,6 +16,6 @@ internal sealed class RefundStarsChargeHandler : RpcResultObjectHandler<MyTelegr
 {
     protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestRefundStarsCharge obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.IUpdates>(new TUpdates { Updates = [], Users = [], Chats = [], Date = 0, Seq = 0 });
     }
 }

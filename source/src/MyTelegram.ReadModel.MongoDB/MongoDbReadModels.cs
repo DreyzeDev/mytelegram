@@ -126,9 +126,9 @@ public class UserNameReadModel : Impl.UserNameReadModel, IMongoDbReadModel
 {
 }
 
-//public class UserPasswordReadModel : Impl.UserPasswordReadModel, IMongoDbReadModel
-//{
-//}
+public class UserPasswordReadModel : Impl.UserPasswordReadModel, IMongoDbReadModel
+{
+}
 
 public class UserReadModel : Impl.UserReadModel, IMongoDbReadModel
 {
@@ -150,9 +150,9 @@ public class PollAnswerVoterReadModel : Impl.PollAnswerVoterReadModel, IMongoDbR
 //{
 //}
 
-//public class ForumTopicReadModel : Impl.ForumTopicReadModel, IMongoDbReadModel
-//{
-//}
+public class ForumTopicReadModel : Impl.ForumTopicReadModel, IMongoDbReadModel
+{
+}
 
 public class AccessHashReadModel : Impl.AccessHashReadModel, IMongoDbReadModel
 {
@@ -194,10 +194,9 @@ public class DocumentReadModel : Impl.DocumentReadModel, IMongoDbReadModel
 {
 }
 
-// public class ThemeReadModel : Impl.ThemeReadModel, IMongoDbReadModel
-// {
-//
-// }
+public class ThemeReadModel : Impl.ThemeReadModel, IMongoDbReadModel
+{
+}
 //public class ChannelPtsReadModel : Impl.ChannelPtsReadModel, IMongoDbReadModel
 //{
 
@@ -224,4 +223,40 @@ public class UserConfigReadModel : Impl.UserConfigReadModel, IMongoDbReadModel
 public class MessageTokenReadModel : Impl.MessageTokenReadModel, IMongoDbReadModel
 {
 
+}
+
+public class PrivacyReadModel : Impl.PrivacyReadModel, IMongoDbReadModel
+{
+}
+
+public class StickerSetReadModel : Impl.StickerSetReadModel, IMongoDbReadModel
+{
+}
+
+public class InstalledStickerSetReadModel : Impl.InstalledStickerSetReadModel, IMongoDbReadModel
+{
+}
+
+public class StarGiftReadModel : Impl.StarGiftReadModel, IMongoDbReadModel
+{
+}
+
+public class UserStarGiftReadModel : Impl.UserStarGiftReadModel, IMongoDbReadModel
+{
+}
+
+public class BusinessChatLinkReadModel : Impl.BusinessChatLinkReadModel, IMongoDbReadModel
+{
+}
+
+public class ChatlistInviteReadModel : Impl.ChatlistInviteReadModel, IMongoDbReadModel
+{
+}
+
+public class QuickReplyShortcutReadModel : Impl.QuickReplyShortcutReadModel, IMongoDbReadModel
+{
+}
+
+public class StoryReadModel : Impl.StoryReadModel, IMongoDbReadModel
+{
 }

@@ -9,10 +9,15 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class LeaveChatlistHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestLeaveChatlist, MyTelegram.Schema.IUpdates>
+internal sealed class LeaveChatlistHandler(ICommandBus commandBus)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestLeaveChatlist, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestLeaveChatlist obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestLeaveChatlist obj)
     {
-        throw new NotImplementedException();
+        var command = new DeleteDialogFilterCommand(
+            DialogFilterId.Create(input.UserId, obj.Chatlist.FilterId),
+            input.ToRequestInfo());
+        await commandBus.PublishAsync(command, default);
+        return new TUpdates { Updates = [], Chats = [], Users = [], Date = CurrentDate };
     }
 }

@@ -9,15 +9,35 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetStickersHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetStickers, MyTelegram.Schema.Messages.IStickers>
+internal sealed class GetStickersHandler(
+    IQueryProcessor queryProcessor,
+    ILayeredService<IDocumentConverter> documentService)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetStickers, MyTelegram.Schema.Messages.IStickers>
 {
-    protected override Task<IStickers> HandleCoreAsync(IRequestInput input, RequestGetStickers obj)
+    protected override async Task<IStickers> HandleCoreAsync(IRequestInput input, RequestGetStickers obj)
     {
-        var r = new TStickers
+        if (string.IsNullOrEmpty(obj.Emoticon))
         {
-            Hash = obj.Hash,
-            Stickers = []
-        };
-        return Task.FromResult<IStickers>(r);
+            RpcErrors.RpcErrors400.EmoticonEmpty.ThrowRpcError();
+        }
+
+        var allSets = await queryProcessor.ProcessAsync(new GetAllStickerSetsQuery());
+        var matchingDocumentIds = allSets
+            .SelectMany(s => s.Packs)
+            .Where(p => p.Emoticon == obj.Emoticon)
+            .SelectMany(p => p.Documents)
+            .Distinct()
+            .ToList();
+
+        if (matchingDocumentIds.Count == 0)
+        {
+            return new TStickers { Hash = obj.Hash, Stickers = [] };
+        }
+
+        var docReadModels = await queryProcessor.ProcessAsync(new GetDocumentsByIdListQuery(matchingDocumentIds));
+        var docConverter = documentService.GetConverter(input.Layer);
+        var stickers = docReadModels.Select(d => (Schema.IDocument)docConverter.ToDocument(d)).ToList();
+
+        return new TStickers { Hash = obj.Hash, Stickers = new TVector<Schema.IDocument>(stickers) };
     }
 }

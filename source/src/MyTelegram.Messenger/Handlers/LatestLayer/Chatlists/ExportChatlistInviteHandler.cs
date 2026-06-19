@@ -16,10 +16,85 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class ExportChatlistInviteHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestExportChatlistInvite, MyTelegram.Schema.Chatlists.IExportedChatlistInvite>
+internal sealed class ExportChatlistInviteHandler(ICommandBus commandBus, IQueryProcessor queryProcessor, IPeerHelper peerHelper)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestExportChatlistInvite, MyTelegram.Schema.Chatlists.IExportedChatlistInvite>
 {
-    protected override Task<MyTelegram.Schema.Chatlists.IExportedChatlistInvite> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestExportChatlistInvite obj)
+    protected override async Task<MyTelegram.Schema.Chatlists.IExportedChatlistInvite> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestExportChatlistInvite obj)
     {
-        throw new NotImplementedException();
+        var filterId = obj.Chatlist.FilterId;
+        var filter = await queryProcessor.ProcessAsync(new GetDialogFilterByIdQuery(input.UserId, filterId));
+        if (filter == null)
+        {
+            RpcErrors.RpcErrors400.FilterIdInvalid.ThrowRpcError();
+            return default!;
+        }
+
+        var slug = Guid.NewGuid().ToString("N")[..16];
+        var peersJson = System.Text.Json.JsonSerializer.Serialize(
+            obj.Peers.Select(p => peerHelper.GetPeer(p, input.UserId)).ToList());
+
+        var command = new CreateInviteCommand(
+            ChatlistInviteId.Create(input.UserId, slug),
+            input.ToRequestInfo(),
+            input.UserId,
+            filterId,
+            slug,
+            obj.Title,
+            peersJson,
+            filter.Filter.Emoticon);
+        await commandBus.PublishAsync(command, default);
+
+        var peers = BuildPeerList(obj.Peers.Select(p => peerHelper.GetPeer(p, input.UserId)));
+        var dialogFilter = BuildDialogFilterChatlist(filter.Filter, hasMyInvites: true);
+
+        return new MyTelegram.Schema.Chatlists.TExportedChatlistInvite
+        {
+            Filter = dialogFilter,
+            Invite = new TExportedChatlistInvite
+            {
+                Title = obj.Title,
+                Url = $"https://t.me/addlist/{slug}",
+                Peers = peers
+            }
+        };
     }
+
+    private static TVector<IPeer> BuildPeerList(IEnumerable<Peer> peers)
+    {
+        var result = new TVector<IPeer>();
+        foreach (var peer in peers)
+        {
+            result.Add(peer.PeerType switch
+            {
+                PeerType.User => (IPeer)new TPeerUser { UserId = peer.PeerId },
+                PeerType.Chat => new TPeerChat { ChatId = peer.PeerId },
+                _ => new TPeerChannel { ChannelId = peer.PeerId }
+            });
+        }
+        return result;
+    }
+
+    private static TDialogFilterChatlist BuildDialogFilterChatlist(DialogFilter f, bool hasMyInvites = false)
+    {
+        var pinnedPeers = new TVector<IInputPeer>(f.PinnedPeers.Select(BuildInputPeer));
+        var includePeers = new TVector<IInputPeer>(f.IncludePeers.Select(BuildInputPeer));
+        return new TDialogFilterChatlist
+        {
+            Id = f.Id,
+            Title = f.Title,
+            Emoticon = f.Emoticon,
+            Color = f.Color,
+            HasMyInvites = hasMyInvites,
+            TitleNoanimate = f.TitleNoAnimate,
+            PinnedPeers = pinnedPeers,
+            IncludePeers = includePeers
+        };
+    }
+
+    private static IInputPeer BuildInputPeer(InputPeer p) => p.Peer.PeerType switch
+    {
+        PeerType.User => new TInputPeerUser { UserId = p.Peer.PeerId, AccessHash = p.AccessHash },
+        PeerType.Chat => new TInputPeerChat { ChatId = p.Peer.PeerId },
+        _ => new TInputPeerChannel { ChannelId = p.Peer.PeerId, AccessHash = p.AccessHash }
+    };
 }

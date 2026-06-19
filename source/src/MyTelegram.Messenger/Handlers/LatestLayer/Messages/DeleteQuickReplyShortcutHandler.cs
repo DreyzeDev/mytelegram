@@ -10,10 +10,22 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class DeleteQuickReplyShortcutHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestDeleteQuickReplyShortcut, IBool>
+internal sealed class DeleteQuickReplyShortcutHandler(ICommandBus commandBus, IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestDeleteQuickReplyShortcut, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestDeleteQuickReplyShortcut obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestDeleteQuickReplyShortcut obj)
     {
-        throw new NotImplementedException();
+        var shortcut = await queryProcessor.ProcessAsync(new GetQuickReplyShortcutByIdQuery(input.UserId, obj.ShortcutId));
+        if (shortcut == null)
+        {
+            RpcErrors.RpcErrors400.ShortcutInvalid.ThrowRpcError();
+            return default!;
+        }
+
+        var command = new DeleteShortcutCommand(
+            QuickReplyShortcutId.Create(input.UserId, obj.ShortcutId),
+            input.ToRequestInfo());
+        await commandBus.PublishAsync(command, default);
+        return new TBoolTrue();
     }
 }

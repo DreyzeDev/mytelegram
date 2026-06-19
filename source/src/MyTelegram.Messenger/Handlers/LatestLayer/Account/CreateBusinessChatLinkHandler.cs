@@ -1,20 +1,39 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Account;
-/// <summary>
-/// Create a <a href="https://corefork.telegram.org/api/business#business-chat-links">business chat deep link »</a>.
-/// Possible errors
-/// Code Type Description
-/// 400 CHATLINKS_TOO_MUCH Too many <a href="https://corefork.telegram.org/api/business#business-chat-links">business chat links</a> were created, please delete some older links.
-/// 400 DOCUMENT_INVALID The specified document is invalid.
-/// 403 PREMIUM_ACCOUNT_REQUIRED A premium account is required to execute this action.
-/// <para><c>See <a href="https://corefork.telegram.org/method/account.createBusinessChatLink"/> </c></para>
-/// </summary>
-/// <remarks>
-/// Access: [User ✔] [Bot ✖] [Anonymous ✖]
-/// </remarks>
-internal sealed class CreateBusinessChatLinkHandler : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestCreateBusinessChatLink, MyTelegram.Schema.IBusinessChatLink>
+
+internal sealed class CreateBusinessChatLinkHandler(ICommandBus commandBus)
+    : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestCreateBusinessChatLink, MyTelegram.Schema.IBusinessChatLink>
 {
-    protected override Task<MyTelegram.Schema.IBusinessChatLink> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestCreateBusinessChatLink obj)
+    protected override async Task<MyTelegram.Schema.IBusinessChatLink> HandleCoreAsync(IRequestInput input,
+        MyTelegram.Schema.Account.RequestCreateBusinessChatLink obj)
     {
-        throw new NotImplementedException();
+        if (obj.Link is not TInputBusinessChatLink link)
+        {
+            RpcErrors.RpcErrors400.InviteSlugEmpty.ThrowRpcError();
+            return default!;
+        }
+
+        var slug = Guid.NewGuid().ToString("N")[..16];
+        var entitiesJson = link.Entities?.Count > 0
+            ? System.Text.Json.JsonSerializer.Serialize(link.Entities)
+            : null;
+
+        var command = new CreateLinkCommand(
+            BusinessChatLinkId.Create(input.UserId, slug),
+            input.ToRequestInfo(),
+            input.UserId,
+            slug,
+            link.Message ?? string.Empty,
+            entitiesJson,
+            link.Title);
+
+        await commandBus.PublishAsync(command);
+
+        return new TBusinessChatLink
+        {
+            Link = $"https://t.me/+{slug}",
+            Message = link.Message ?? string.Empty,
+            Title = link.Title,
+            Views = 0,
+        };
     }
 }

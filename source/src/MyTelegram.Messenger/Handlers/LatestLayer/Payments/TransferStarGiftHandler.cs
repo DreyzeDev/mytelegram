@@ -23,6 +23,7 @@ internal sealed class TransferStarGiftHandler : RpcResultObjectHandler<MyTelegra
 {
     protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestTransferStarGift obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.PaymentRequired.ThrowRpcError();
+        return default!;
     }
 }

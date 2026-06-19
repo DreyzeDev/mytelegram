@@ -11,10 +11,17 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Account;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class SetPrivacyHandler : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestSetPrivacy, MyTelegram.Schema.Account.IPrivacyRules>
+internal sealed class SetPrivacyHandler(IPrivacyAppService privacyAppService)
+    : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestSetPrivacy, MyTelegram.Schema.Account.IPrivacyRules>
 {
-    protected override Task<MyTelegram.Schema.Account.IPrivacyRules> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestSetPrivacy obj)
+    protected override async Task<MyTelegram.Schema.Account.IPrivacyRules> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestSetPrivacy obj)
     {
-        return Task.FromResult<MyTelegram.Schema.Account.IPrivacyRules>(new TPrivacyRules { Users = [], Chats = [], Rules = [] });
+        var output = await privacyAppService.SetPrivacyAsync(input.ToRequestInfo(), input.UserId, obj.Key, obj.Rules);
+        return new TPrivacyRules
+        {
+            Rules = new TVector<IPrivacyRule>(output.Rules),
+            Users = new TVector<IUser>(),
+            Chats = new TVector<IChat>()
+        };
     }
 }

@@ -16,6 +16,6 @@ internal sealed class GetStarsRevenueWithdrawalUrlHandler : RpcResultObjectHandl
 {
     protected override Task<MyTelegram.Schema.Payments.IStarsRevenueWithdrawalUrl> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetStarsRevenueWithdrawalUrl obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IStarsRevenueWithdrawalUrl>(new MyTelegram.Schema.Payments.TStarsRevenueWithdrawalUrl { Url = "" });
     }
 }

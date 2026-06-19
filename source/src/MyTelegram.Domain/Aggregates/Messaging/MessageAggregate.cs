@@ -400,6 +400,31 @@ public class MessageAggregate : SnapshotAggregateRoot<MessageAggregate, MessageI
         ));
     }
 
+    public void SendReaction(
+        RequestInfo requestInfo,
+        long ownerPeerId,
+        int messageId,
+        Peer senderPeer,
+        List<Reaction> reactions,
+        Peer toPeer,
+        bool big,
+        bool addToRecent)
+    {
+        Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
+        var previousReactions = _state.UserReactions.GetValueOrDefault(senderPeer.PeerId) ?? new List<Reaction>();
+        Emit(new MessageReactionSentEvent(requestInfo, ownerPeerId, messageId, senderPeer, reactions, toPeer, big, addToRecent, previousReactions));
+    }
+
+    public void SetAutoDeleteTimer(
+        RequestInfo requestInfo,
+        long ownerPeerId,
+        int messageId,
+        int ttlSeconds)
+    {
+        Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
+        Emit(new MessageAutoDeleteTimerSetEvent(requestInfo, ownerPeerId, messageId, ttlSeconds));
+    }
+
     protected override Task<MessageSnapshot> CreateSnapshotAsync(CancellationToken cancellationToken)
     {
         return Task.FromResult(new MessageSnapshot(_state.MessageItem,

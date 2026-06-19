@@ -23,7 +23,9 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
     IAmReadModelFor<MessageAggregate, MessageId, ChannelMessageDeletedEvent>,
     IAmReadModelFor<SendMessageSaga, SendMessageSagaId, PostChannelIdUpdatedSagaEvent>,
     IAmReadModelFor<MessageAggregate, MessageId, MessageUnpinnedEvent>,
-    IAmReadModelFor<MessageAggregate, MessageId, MessagePinnedUpdatedEvent>
+    IAmReadModelFor<MessageAggregate, MessageId, MessagePinnedUpdatedEvent>,
+    IAmReadModelFor<MessageAggregate, MessageId, MessageReactionSentEvent>,
+    IAmReadModelFor<MessageAggregate, MessageId, MessageAutoDeleteTimerSetEvent>
 {
     public int Date { get; private set; }
     public int? EditDate { get; private set; }
@@ -396,6 +398,68 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
     public Task ApplyAsync(IReadModelContext context, IDomainEvent<MessageAggregate, MessageId, MessagePinnedUpdatedEvent> domainEvent, CancellationToken cancellationToken)
     {
         Pinned = domainEvent.AggregateEvent.Pinned;
+
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context, IDomainEvent<MessageAggregate, MessageId, MessageReactionSentEvent> domainEvent, CancellationToken cancellationToken)
+    {
+        var e = domainEvent.AggregateEvent;
+        var userId = e.SenderPeer.PeerId;
+        var reactions = e.Reactions;
+
+        var allUserReactions = new Dictionary<long, List<Reaction>>();
+        if (RecentReactions != null)
+        {
+            foreach (var r in RecentReactions)
+            {
+                if (!allUserReactions.ContainsKey(r.UserId))
+                    allUserReactions[r.UserId] = new List<Reaction>();
+                allUserReactions[r.UserId].Add(r);
+            }
+        }
+
+        if (reactions == null || reactions.Count == 0)
+            allUserReactions.Remove(userId);
+        else
+            allUserReactions[userId] = reactions;
+
+        var reactionCounts = new Dictionary<long, ReactionCount>();
+        var recentList = new List<Reaction>();
+
+        foreach (var kv in allUserReactions)
+        {
+            foreach (var r in kv.Value)
+            {
+                var key = r.GetReactionId();
+                IReaction reactionObj = r.CustomEmojiDocumentId.HasValue
+                    ? (IReaction)new TReactionCustomEmoji { DocumentId = r.CustomEmojiDocumentId.Value }
+                    : new TReactionEmoji { Emoticon = r.Emoticon ?? string.Empty };
+
+                if (!reactionCounts.TryGetValue(key, out var rc))
+                {
+                    rc = new ReactionCount(reactionObj, 0, r.Emoticon, r.CustomEmojiDocumentId);
+                    reactionCounts[key] = rc;
+                }
+                rc.Count++;
+                recentList.Add(r);
+            }
+        }
+
+        Reactions = reactionCounts.Values.ToList();
+        RecentReactions = recentList;
+
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context, IDomainEvent<MessageAggregate, MessageId, MessageAutoDeleteTimerSetEvent> domainEvent, CancellationToken cancellationToken)
+    {
+        var e = domainEvent.AggregateEvent;
+        TtlPeriod = e.TtlSeconds;
+        if (e.TtlSeconds > 0)
+            ExpirationTime = Date + e.TtlSeconds;
+        else
+            ExpirationTime = null;
 
         return Task.CompletedTask;
     }

@@ -15,6 +15,6 @@ internal sealed class GetStarGiftWithdrawalUrlHandler : RpcResultObjectHandler<M
 {
     protected override Task<MyTelegram.Schema.Payments.IStarGiftWithdrawalUrl> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetStarGiftWithdrawalUrl obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IStarGiftWithdrawalUrl>(new MyTelegram.Schema.Payments.TStarGiftWithdrawalUrl { Url = "" });
     }
 }

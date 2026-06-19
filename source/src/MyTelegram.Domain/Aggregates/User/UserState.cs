@@ -15,7 +15,8 @@ public class UserState : AggregateState<UserAggregate, UserId, UserState>,
     IApply<PersonalChannelUpdatedEvent>,
     IApply<BirthdayUpdatedEvent>,
     IApply<UserAboutUpdatedEvent>,
-    IApply<UserFirstNameUpdatedEvent>
+    IApply<UserFirstNameUpdatedEvent>,
+    IApply<UserPasswordUpdatedEvent>
 {
     public long AccessHash { get; private set; }
     public string FirstName { get; private set; } = null!;
@@ -180,5 +181,10 @@ public class UserState : AggregateState<UserAggregate, UserId, UserState>,
     public void Apply(UserFirstNameUpdatedEvent aggregateEvent)
     {
         FirstName= aggregateEvent.FirstName;
+    }
+
+    public void Apply(UserPasswordUpdatedEvent aggregateEvent)
+    {
+        HasPassword = aggregateEvent.HasPassword;
     }
 }

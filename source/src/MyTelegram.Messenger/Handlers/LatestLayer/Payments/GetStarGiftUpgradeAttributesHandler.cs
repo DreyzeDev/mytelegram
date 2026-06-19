@@ -12,6 +12,6 @@ internal sealed class GetStarGiftUpgradeAttributesHandler : RpcResultObjectHandl
 {
     protected override Task<MyTelegram.Schema.Payments.IStarGiftUpgradeAttributes> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetStarGiftUpgradeAttributes obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IStarGiftUpgradeAttributes>(new MyTelegram.Schema.Payments.TStarGiftUpgradeAttributes { Attributes = [] });
     }
 }

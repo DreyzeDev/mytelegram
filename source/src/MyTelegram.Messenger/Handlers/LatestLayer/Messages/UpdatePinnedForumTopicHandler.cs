@@ -9,10 +9,26 @@ namespace MyTelegram.Messenger.Handlers.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class UpdatePinnedForumTopicHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestUpdatePinnedForumTopic, MyTelegram.Schema.IUpdates>, IObjectHandler
+internal sealed class UpdatePinnedForumTopicHandler(ICommandBus commandBus)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestUpdatePinnedForumTopic, MyTelegram.Schema.IUpdates>, IObjectHandler
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestUpdatePinnedForumTopic obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestUpdatePinnedForumTopic obj)
     {
-        throw new NotImplementedException();
+        if (obj.Peer is TInputPeerChannel inputPeerChannel)
+        {
+            var aggregateId = ForumTopicId.Create(inputPeerChannel.ChannelId, obj.TopicId);
+            await commandBus.PublishAsync(new EditTopicCommand(
+                aggregateId, inputPeerChannel.ChannelId, obj.TopicId,
+                null, null, null, null, obj.Pinned));
+        }
+
+        return new TUpdates
+        {
+            Updates = new TVector<IUpdate>(),
+            Users = new TVector<IUser>(),
+            Chats = new TVector<IChat>(),
+            Date = CurrentDate,
+            Seq = 0
+        };
     }
 }

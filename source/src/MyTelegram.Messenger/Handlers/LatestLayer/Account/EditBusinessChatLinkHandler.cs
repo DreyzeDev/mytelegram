@@ -1,19 +1,49 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Account;
-/// <summary>
-/// Edit a created <a href="https://corefork.telegram.org/api/business#business-chat-links">business chat deep link »</a>.
-/// Possible errors
-/// Code Type Description
-/// 400 CHATLINK_SLUG_EMPTY The specified slug is empty.
-/// 403 PREMIUM_ACCOUNT_REQUIRED A premium account is required to execute this action.
-/// <para><c>See <a href="https://corefork.telegram.org/method/account.editBusinessChatLink"/> </c></para>
-/// </summary>
-/// <remarks>
-/// Access: [User ✔] [Bot ✖] [Anonymous ✖]
-/// </remarks>
-internal sealed class EditBusinessChatLinkHandler : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestEditBusinessChatLink, MyTelegram.Schema.IBusinessChatLink>
+
+internal sealed class EditBusinessChatLinkHandler(ICommandBus commandBus, IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestEditBusinessChatLink, MyTelegram.Schema.IBusinessChatLink>
 {
-    protected override Task<MyTelegram.Schema.IBusinessChatLink> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestEditBusinessChatLink obj)
+    protected override async Task<MyTelegram.Schema.IBusinessChatLink> HandleCoreAsync(IRequestInput input,
+        MyTelegram.Schema.Account.RequestEditBusinessChatLink obj)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(obj.Slug))
+        {
+            RpcErrors.RpcErrors400.InviteSlugEmpty.ThrowRpcError();
+            return default!;
+        }
+
+        var existing = await queryProcessor.ProcessAsync(new GetBusinessChatLinkBySlugQuery(obj.Slug));
+        if (existing == null || existing.UserId != input.UserId)
+        {
+            RpcErrors.RpcErrors400.InviteSlugExpired.ThrowRpcError();
+            return default!;
+        }
+
+        if (obj.Link is not TInputBusinessChatLink link)
+        {
+            RpcErrors.RpcErrors400.InviteSlugEmpty.ThrowRpcError();
+            return default!;
+        }
+
+        var entitiesJson = link.Entities?.Count > 0
+            ? System.Text.Json.JsonSerializer.Serialize(link.Entities)
+            : null;
+
+        var command = new EditLinkCommand(
+            BusinessChatLinkId.Create(input.UserId, obj.Slug),
+            input.ToRequestInfo(),
+            link.Message ?? existing.Message,
+            entitiesJson,
+            link.Title);
+
+        await commandBus.PublishAsync(command);
+
+        return new TBusinessChatLink
+        {
+            Link = $"https://t.me/+{obj.Slug}",
+            Message = link.Message ?? existing.Message,
+            Title = link.Title,
+            Views = existing.Views,
+        };
     }
 }

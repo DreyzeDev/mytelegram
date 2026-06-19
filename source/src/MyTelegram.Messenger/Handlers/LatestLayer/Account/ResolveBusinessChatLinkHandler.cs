@@ -1,19 +1,30 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Account;
-/// <summary>
-/// Resolve a <a href="https://corefork.telegram.org/api/business#business-chat-links">business chat deep link »</a>.
-/// Possible errors
-/// Code Type Description
-/// 400 CHATLINK_SLUG_EMPTY The specified slug is empty.
-/// 400 CHATLINK_SLUG_EXPIRED The specified <a href="https://corefork.telegram.org/api/business#business-chat-links">business chat link</a> has expired.
-/// <para><c>See <a href="https://corefork.telegram.org/method/account.resolveBusinessChatLink"/> </c></para>
-/// </summary>
-/// <remarks>
-/// Access: [User ✔] [Bot ✖] [Anonymous ✖]
-/// </remarks>
-internal sealed class ResolveBusinessChatLinkHandler : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestResolveBusinessChatLink, MyTelegram.Schema.Account.IResolvedBusinessChatLinks>
+
+internal sealed class ResolveBusinessChatLinkHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestResolveBusinessChatLink, MyTelegram.Schema.Account.IResolvedBusinessChatLinks>
 {
-    protected override Task<MyTelegram.Schema.Account.IResolvedBusinessChatLinks> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestResolveBusinessChatLink obj)
+    protected override async Task<MyTelegram.Schema.Account.IResolvedBusinessChatLinks> HandleCoreAsync(IRequestInput input,
+        MyTelegram.Schema.Account.RequestResolveBusinessChatLink obj)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(obj.Slug))
+        {
+            RpcErrors.RpcErrors400.InviteSlugEmpty.ThrowRpcError();
+            return default!;
+        }
+
+        var link = await queryProcessor.ProcessAsync(new GetBusinessChatLinkBySlugQuery(obj.Slug));
+        if (link == null)
+        {
+            RpcErrors.RpcErrors400.InviteSlugExpired.ThrowRpcError();
+            return default!;
+        }
+
+        return new TResolvedBusinessChatLinks
+        {
+            Peer = new TPeerUser { UserId = link.UserId },
+            Message = link.Message,
+            Chats = [],
+            Users = [],
+        };
     }
 }

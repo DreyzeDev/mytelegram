@@ -36,9 +36,13 @@ internal sealed class UpdateDialogFilterHandler(ICommandBus commandBus, IPeerHel
                 var command = new UpdateDialogFilterCommand(DialogFilterId.Create(input.UserId, obj.Id), input.ToRequestInfo(), input.UserId, filter);
                 await commandBus.PublishAsync(command, default);
             }
-            else
+            else if (obj.Filter is TDialogFilterChatlist cl)
             {
-                throw new NotImplementedException();
+                var pinnedPeers = cl.PinnedPeers.Select(p => GetInputPeer(input, p)).ToList();
+                var includePeers = cl.IncludePeers.Select(p => GetInputPeer(input, p)).ToList();
+                var filter = new DialogFilter(obj.Id, false, false, false, false, false, false, false, false, cl.TitleNoanimate, cl.Title, cl.Emoticon, cl.Color, pinnedPeers, includePeers, [], true);
+                var command = new UpdateDialogFilterCommand(DialogFilterId.Create(input.UserId, obj.Id), input.ToRequestInfo(), input.UserId, filter);
+                await commandBus.PublishAsync(command, default);
             }
         }
 

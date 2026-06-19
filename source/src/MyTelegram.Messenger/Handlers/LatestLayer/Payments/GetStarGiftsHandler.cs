@@ -1,17 +1,53 @@
 using MyTelegram.Schema.Payments;
 
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Payments;
-/// <summary>
-/// Get a list of available <a href="https://corefork.telegram.org/api/gifts">gifts, see here »</a> for more info.
-/// <para><c>See <a href="https://corefork.telegram.org/method/payments.getStarGifts"/> </c></para>
-/// </summary>
-/// <remarks>
-/// Access: [User ✔] [Bot ✔] [Anonymous ✖]
-/// </remarks>
-internal sealed class GetStarGiftsHandler : RpcResultObjectHandler<MyTelegram.Schema.Payments.RequestGetStarGifts, MyTelegram.Schema.Payments.IStarGifts>
+
+internal sealed class GetStarGiftsHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<RequestGetStarGifts, IStarGifts>
 {
-    protected override Task<MyTelegram.Schema.Payments.IStarGifts> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetStarGifts obj)
+    protected override async Task<IStarGifts> HandleCoreAsync(IRequestInput input, RequestGetStarGifts obj)
     {
-        return Task.FromResult<MyTelegram.Schema.Payments.IStarGifts>(new TStarGifts { Gifts = [], Chats = [], Users = [] });
+        var gifts = await queryProcessor.ProcessAsync(new GetAllStarGiftsQuery());
+        var starGifts = new TVector<MyTelegram.Schema.IStarGift>();
+
+        foreach (var g in gifts)
+        {
+            var doc = await queryProcessor.ProcessAsync(new GetDocumentByIdQuery(g.StickerDocumentId));
+            IDocument sticker = doc != null
+                ? new TDocument
+                {
+                    Id = doc.DocumentId,
+                    AccessHash = doc.AccessHash,
+                    FileReference = doc.FileReference.ToArray(),
+                    Date = doc.Date,
+                    MimeType = doc.MimeType,
+                    Size = doc.Size,
+                    DcId = doc.DcId,
+                    Attributes = doc.Attributes2 != null
+                        ? [.. doc.Attributes2]
+                        : doc.Attributes.ToTObject<TVector<IDocumentAttribute>>()
+                }
+                : new TDocumentEmpty { Id = g.StickerDocumentId };
+
+            var gift = new TStarGift
+            {
+                Id = g.GiftId,
+                Sticker = sticker,
+                Stars = g.Stars,
+                ConvertStars = g.ConvertStars,
+                Limited = g.Limited,
+                SoldOut = g.SoldOut
+            };
+
+            if (g.Limited)
+            {
+                gift.AvailabilityRemains = g.AvailabilityRemains;
+                gift.AvailabilityTotal = g.AvailabilityTotal;
+            }
+
+            starGifts.Add(gift);
+        }
+
+        return new TStarGifts { Gifts = starGifts, Chats = [], Users = [] };
     }
 }

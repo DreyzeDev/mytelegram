@@ -10,10 +10,18 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class HideChatlistUpdatesHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestHideChatlistUpdates, IBool>
+internal sealed class HideChatlistUpdatesHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestHideChatlistUpdates, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestHideChatlistUpdates obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestHideChatlistUpdates obj)
     {
-        throw new NotImplementedException();
+        var filter = await queryProcessor.ProcessAsync(new GetDialogFilterByIdQuery(input.UserId, obj.Chatlist.FilterId));
+        if (filter == null)
+        {
+            RpcErrors.RpcErrors400.FilterIdInvalid.ThrowRpcError();
+            return default!;
+        }
+
+        return new TBoolTrue();
     }
 }

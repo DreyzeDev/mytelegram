@@ -9,10 +9,42 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetExportedInvitesHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestGetExportedInvites, MyTelegram.Schema.Chatlists.IExportedInvites>
+internal sealed class GetExportedInvitesHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestGetExportedInvites, MyTelegram.Schema.Chatlists.IExportedInvites>
 {
-    protected override Task<MyTelegram.Schema.Chatlists.IExportedInvites> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestGetExportedInvites obj)
+    protected override async Task<MyTelegram.Schema.Chatlists.IExportedInvites> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestGetExportedInvites obj)
     {
-        throw new NotImplementedException();
+        var invites = await queryProcessor.ProcessAsync(new GetChatlistInvitesByFilterIdQuery(input.UserId, obj.Chatlist.FilterId));
+        var inviteList = new TVector<IExportedChatlistInvite>();
+        foreach (var inv in invites)
+        {
+            var peers = DeserializePeers(inv.PeersJson);
+            inviteList.Add(new TExportedChatlistInvite
+            {
+                Title = inv.Title,
+                Url = $"https://t.me/addlist/{inv.Slug}",
+                Peers = peers
+            });
+        }
+        return new MyTelegram.Schema.Chatlists.TExportedInvites { Invites = inviteList, Chats = [], Users = [] };
+    }
+
+    private static TVector<IPeer> DeserializePeers(string peersJson)
+    {
+        var result = new TVector<IPeer>();
+        try
+        {
+            var domainPeers = System.Text.Json.JsonSerializer.Deserialize<List<Peer>>(peersJson);
+            if (domainPeers == null) return result;
+            foreach (var p in domainPeers)
+                result.Add(p.PeerType switch
+                {
+                    PeerType.User => (IPeer)new TPeerUser { UserId = p.PeerId },
+                    PeerType.Chat => new TPeerChat { ChatId = p.PeerId },
+                    _ => new TPeerChannel { ChannelId = p.PeerId }
+                });
+        }
+        catch { }
+        return result;
     }
 }

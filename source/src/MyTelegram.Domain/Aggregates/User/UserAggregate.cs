@@ -171,6 +171,13 @@ public class UserAggregate : MyInMemorySnapshotAggregateRoot<UserAggregate, User
             /*, hasVideo, videoStartTs*/));
     }
 
+    public void UpdatePassword(RequestInfo requestInfo, long userId, PasswordSetting? passwordSetting)
+    {
+        Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
+        var hasPassword = passwordSetting != null && passwordSetting.NewPasswordHash.Length > 0;
+        Emit(new UserPasswordUpdatedEvent(requestInfo, userId, passwordSetting, hasPassword));
+    }
+
     protected override Task<UserSnapshot> CreateSnapshotAsync(CancellationToken cancellationToken)
     {
         return Task.FromResult(new UserSnapshot(_state.UserId,

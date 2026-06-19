@@ -145,6 +145,9 @@ public class UserNameReadModel : Impl.UserNameReadModel
 {
 }
 
+public class UserPasswordReadModel : Impl.UserPasswordReadModel
+{
+}
 
 public class UserReadModel : Impl.UserReadModel
 {
@@ -152,4 +155,52 @@ public class UserReadModel : Impl.UserReadModel
 public class LanguageTextReadModel : Impl.LanguageTextReadModel
 {
 
+}
+
+public class PrivacyReadModel : Impl.PrivacyReadModel
+{
+}
+
+public class DocumentReadModel : Impl.DocumentReadModel
+{
+}
+
+public class StickerSetReadModel : Impl.StickerSetReadModel
+{
+}
+
+public class InstalledStickerSetReadModel : Impl.InstalledStickerSetReadModel
+{
+}
+
+public class ForumTopicReadModel : Impl.ForumTopicReadModel
+{
+}
+
+public class StarGiftReadModel : Impl.StarGiftReadModel
+{
+}
+
+public class UserStarGiftReadModel : Impl.UserStarGiftReadModel
+{
+}
+
+public class ThemeReadModel : Impl.ThemeReadModel
+{
+}
+
+public class BusinessChatLinkReadModel : Impl.BusinessChatLinkReadModel
+{
+}
+
+public class ChatlistInviteReadModel : Impl.ChatlistInviteReadModel
+{
+}
+
+public class QuickReplyShortcutReadModel : Impl.QuickReplyShortcutReadModel
+{
+}
+
+public class StoryReadModel : Impl.StoryReadModel
+{
 }

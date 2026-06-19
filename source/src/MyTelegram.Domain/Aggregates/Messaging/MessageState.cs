@@ -29,7 +29,9 @@ public class MessageState : AggregateState<MessageAggregate, MessageId, MessageS
     IApply<MessageUnpinnedEvent>,
     IApply<MessagePinnedUpdatedEvent>,
     IApply<OutboxMessageEditedEventV2>,
-    IApply<InboxMessageEditedEventV2>
+    IApply<InboxMessageEditedEventV2>,
+    IApply<MessageReactionSentEvent>,
+    IApply<MessageAutoDeleteTimerSetEvent>
 {
     public int EditDate { get; private set; }
     //public bool EditHide { get; private set; }
@@ -201,5 +203,50 @@ public class MessageState : AggregateState<MessageAggregate, MessageId, MessageS
         Edited = true;
 
         MessageItem = aggregateEvent.NewMessageItem;
+    }
+
+    public void Apply(MessageReactionSentEvent aggregateEvent)
+    {
+        var userId = aggregateEvent.SenderPeer.PeerId;
+        var reactions = aggregateEvent.Reactions;
+
+        if (reactions == null || reactions.Count == 0)
+        {
+            UserReactions.TryRemove(userId, out _);
+        }
+        else
+        {
+            UserReactions[userId] = reactions;
+        }
+
+        ReactionCounts.Clear();
+        foreach (var kv in UserReactions)
+        {
+            foreach (var r in kv.Value)
+            {
+                var key = r.GetReactionId();
+                IReaction reactionObj = r.CustomEmojiDocumentId.HasValue
+                    ? (IReaction)new TReactionCustomEmoji { DocumentId = r.CustomEmojiDocumentId.Value }
+                    : new TReactionEmoji { Emoticon = r.Emoticon ?? string.Empty };
+
+                if (!ReactionCounts.TryGetValue(key, out var rc))
+                {
+                    rc = new ReactionCount(reactionObj, 0, r.Emoticon, r.CustomEmojiDocumentId);
+                    ReactionCounts[key] = rc;
+                }
+                rc.Count++;
+            }
+        }
+
+        RecentReactions.Clear();
+        foreach (var kv in UserReactions)
+        {
+            RecentReactions.AddRange(kv.Value);
+        }
+    }
+
+    public void Apply(MessageAutoDeleteTimerSetEvent aggregateEvent)
+    {
+        MessageItem = MessageItem with { TtlPeriod = aggregateEvent.TtlSeconds };
     }
 }

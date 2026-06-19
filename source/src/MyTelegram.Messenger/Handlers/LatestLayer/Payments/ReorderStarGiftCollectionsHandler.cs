@@ -14,6 +14,6 @@ internal sealed class ReorderStarGiftCollectionsHandler : RpcResultObjectHandler
 {
     protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestReorderStarGiftCollections obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<IBool>(new TBoolTrue());
     }
 }

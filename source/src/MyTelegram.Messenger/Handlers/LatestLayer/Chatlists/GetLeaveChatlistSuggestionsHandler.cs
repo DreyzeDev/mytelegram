@@ -10,10 +10,24 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetLeaveChatlistSuggestionsHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestGetLeaveChatlistSuggestions, TVector<MyTelegram.Schema.IPeer>>
+internal sealed class GetLeaveChatlistSuggestionsHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestGetLeaveChatlistSuggestions, TVector<MyTelegram.Schema.IPeer>>
 {
-    protected override Task<TVector<MyTelegram.Schema.IPeer>> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestGetLeaveChatlistSuggestions obj)
+    protected override async Task<TVector<MyTelegram.Schema.IPeer>> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestGetLeaveChatlistSuggestions obj)
     {
-        throw new NotImplementedException();
+        var result = new TVector<IPeer>();
+        var filter = await queryProcessor.ProcessAsync(new GetDialogFilterByIdQuery(input.UserId, obj.Chatlist.FilterId));
+        if (filter == null) return result;
+
+        foreach (var peer in filter.Filter.IncludePeers)
+        {
+            result.Add(peer.Peer.PeerType switch
+            {
+                PeerType.User => (IPeer)new TPeerUser { UserId = peer.Peer.PeerId },
+                PeerType.Chat => new TPeerChat { ChatId = peer.Peer.PeerId },
+                _ => new TPeerChannel { ChannelId = peer.Peer.PeerId }
+            });
+        }
+        return result;
     }
 }

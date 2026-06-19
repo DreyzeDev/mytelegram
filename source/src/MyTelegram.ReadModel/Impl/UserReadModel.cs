@@ -19,7 +19,8 @@ public partial class UserReadModel : ReadModelBase, IUserReadModel,
     IAmReadModelFor<UserAggregate, UserId, PersonalChannelUpdatedEvent>,
     IAmReadModelFor<UserAggregate, UserId, BirthdayUpdatedEvent>,
     IAmReadModelFor<UserAggregate, UserId, UserAboutUpdatedEvent>,
-    IAmReadModelFor<UserAggregate, UserId, UserFirstNameUpdatedEvent>
+    IAmReadModelFor<UserAggregate, UserId, UserFirstNameUpdatedEvent>,
+    IAmReadModelFor<UserAggregate, UserId, UserPasswordUpdatedEvent>
 {
     public virtual string? About { get; private set; }
     public virtual long AccessHash { get; private set; }
@@ -249,6 +250,13 @@ public partial class UserReadModel : ReadModelBase, IUserReadModel,
     public Task ApplyAsync(IReadModelContext context, IDomainEvent<UserAggregate, UserId, UserFirstNameUpdatedEvent> domainEvent, CancellationToken cancellationToken)
     {
         FirstName = domainEvent.AggregateEvent.FirstName;
+
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context, IDomainEvent<UserAggregate, UserId, UserPasswordUpdatedEvent> domainEvent, CancellationToken cancellationToken)
+    {
+        HasPassword = domainEvent.AggregateEvent.HasPassword;
 
         return Task.CompletedTask;
     }

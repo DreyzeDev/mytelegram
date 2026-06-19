@@ -14,6 +14,7 @@ internal sealed class UploadWallPaperHandler : RpcResultObjectHandler<MyTelegram
 {
     protected override Task<MyTelegram.Schema.IWallPaper> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestUploadWallPaper obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.WallpaperInvalid.ThrowRpcError();
+        return default!;
     }
 }

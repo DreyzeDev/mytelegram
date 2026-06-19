@@ -21,6 +21,6 @@ internal sealed class ExportInvoiceHandler : RpcResultObjectHandler<MyTelegram.S
 {
     protected override Task<MyTelegram.Schema.Payments.IExportedInvoice> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestExportInvoice obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IExportedInvoice>(new MyTelegram.Schema.Payments.TExportedInvoice { Url = "" });
     }
 }

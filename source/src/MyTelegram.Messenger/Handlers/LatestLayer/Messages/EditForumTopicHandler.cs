@@ -9,10 +9,27 @@ namespace MyTelegram.Messenger.Handlers.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class EditForumTopicHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditForumTopic, MyTelegram.Schema.IUpdates>, IObjectHandler
+internal sealed class EditForumTopicHandler(ICommandBus commandBus)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditForumTopic, MyTelegram.Schema.IUpdates>, IObjectHandler
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditForumTopic obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditForumTopic obj)
     {
-        throw new NotImplementedException();
+        if (obj.Peer is not TInputPeerChannel inputPeerChannel)
+            RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+
+        var channelId = inputPeerChannel!.ChannelId;
+        var aggregateId = ForumTopicId.Create(channelId, obj.TopicId);
+        await commandBus.PublishAsync(new EditTopicCommand(
+            aggregateId, channelId, obj.TopicId, obj.Title, obj.IconEmojiId,
+            obj.Closed, obj.Hidden, null));
+
+        return new TUpdates
+        {
+            Updates = new TVector<IUpdate>(),
+            Users = new TVector<IUser>(),
+            Chats = new TVector<IChat>(),
+            Date = CurrentDate,
+            Seq = 0
+        };
     }
 }

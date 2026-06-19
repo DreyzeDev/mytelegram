@@ -14,6 +14,6 @@ internal sealed class GetGiveawayInfoHandler : RpcResultObjectHandler<MyTelegram
 {
     protected override Task<MyTelegram.Schema.Payments.IGiveawayInfo> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetGiveawayInfo obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IGiveawayInfo>(new MyTelegram.Schema.Payments.TGiveawayInfo { StartDate = 0 });
     }
 }

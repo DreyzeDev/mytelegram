@@ -4,6 +4,7 @@ using MyTelegram;
 using MyTelegram.Caching.Redis;
 using MyTelegram.EventBus.RabbitMQ.Extensions;
 using MyTelegram.Messenger;
+using MyTelegram.Messenger.Services.Impl;
 using MyTelegram.Messenger.QueryServer.BackgroundServices;
 using MyTelegram.Messenger.QueryServer.Extensions;
 using MyTelegram.Services.NativeAot;
@@ -65,6 +66,7 @@ builder.ConfigureServices((ctx,
 
     services.Configure<EventBusRabbitMqOptions>(ctx.Configuration.GetRequiredSection("RabbitMQ:EventBus"));
     services.Configure<RabbitMqOptions>(ctx.Configuration.GetRequiredSection("RabbitMQ:Connections:Default"));
+    services.Configure<FcmOptions>(ctx.Configuration.GetSection("Fcm"));
 
     var eventBusOptions = ctx.Configuration.GetRequiredSection("RabbitMQ:EventBus").Get<EventBusRabbitMqOptions>();
     var rabbitMqOptions = ctx.Configuration.GetRequiredSection("RabbitMQ:Connections:Default").Get<RabbitMqOptions>();
@@ -99,6 +101,8 @@ builder.ConfigureServices((ctx,
     services.AddHostedService<ObjectMessageSenderBackgroundService>();
     services.AddHostedService<MyTelegramInvokeAfterMsgProcessorBackgroundService>();
     services.AddHostedService<QueuedCommandExecutorBackgroundService>();
+    services.AddHostedService<AutoDeleteMessagesBackgroundService>();
+    services.AddHostedService<ScheduledMessagesBackgroundService>();
 
     services.Configure<HostOptions>(options =>
     {

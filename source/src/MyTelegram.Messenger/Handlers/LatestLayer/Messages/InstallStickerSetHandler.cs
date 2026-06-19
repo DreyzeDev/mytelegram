@@ -1,3 +1,5 @@
+using MyTelegram.Domain.Aggregates.InstalledStickerSet;
+
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <summary>
 /// Install a stickerset
@@ -9,10 +11,29 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class InstallStickerSetHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestInstallStickerSet, MyTelegram.Schema.Messages.IStickerSetInstallResult>
+internal sealed class InstallStickerSetHandler(
+    IQueryProcessor queryProcessor,
+    ICommandBus commandBus)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestInstallStickerSet, MyTelegram.Schema.Messages.IStickerSetInstallResult>
 {
-    protected override Task<MyTelegram.Schema.Messages.IStickerSetInstallResult> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestInstallStickerSet obj)
+    protected override async Task<MyTelegram.Schema.Messages.IStickerSetInstallResult> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestInstallStickerSet obj)
     {
-        throw new NotImplementedException();
+        IStickerSetReadModel? stickerSet = obj.Stickerset switch
+        {
+            TInputStickerSetID byId => await queryProcessor.ProcessAsync(new GetStickerSetByIdQuery(byId.Id)),
+            TInputStickerSetShortName byName => await queryProcessor.ProcessAsync(new GetStickerSetByNameQuery(byName.ShortName)),
+            _ => null
+        };
+
+        if (stickerSet == null)
+        {
+            RpcErrors.RpcErrors406.StickersetInvalid.ThrowRpcError();
+        }
+
+        var aggregateId = InstalledStickerSetId.Create(input.UserId, stickerSet!.StickerSetId);
+        var date = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await commandBus.PublishAsync(new InstallCommand(aggregateId, input.UserId, stickerSet.StickerSetId, stickerSet.StickerSetType, date));
+
+        return new MyTelegram.Schema.Messages.TStickerSetInstallResultSuccess();
     }
 }

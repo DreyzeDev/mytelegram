@@ -12,6 +12,6 @@ internal sealed class GetStarGiftAuctionAcquiredGiftsHandler : RpcResultObjectHa
 {
     protected override Task<MyTelegram.Schema.Payments.IStarGiftAuctionAcquiredGifts> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetStarGiftAuctionAcquiredGifts obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IStarGiftAuctionAcquiredGifts>(new MyTelegram.Schema.Payments.TStarGiftAuctionAcquiredGifts { Gifts = [], Users = [], Chats = [] });
     }
 }

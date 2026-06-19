@@ -13,6 +13,6 @@ internal sealed class GetBankCardDataHandler : RpcResultObjectHandler<MyTelegram
 {
     protected override Task<MyTelegram.Schema.Payments.IBankCardData> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetBankCardData obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IBankCardData>(new MyTelegram.Schema.Payments.TBankCardData { Title = "", OpenUrls = [] });
     }
 }

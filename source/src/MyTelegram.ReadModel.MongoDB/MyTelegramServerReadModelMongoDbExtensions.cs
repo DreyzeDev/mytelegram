@@ -2,6 +2,7 @@
 using MongoDB.Bson.Serialization.Conventions;
 using MyTelegram.Domain.Aggregates.Language;
 using MyTelegram.Domain.Aggregates.PeerNotifySetting;
+using MyTelegram.Domain.Aggregates.User;
 using MyTelegram.Domain.Aggregates.PeerSetting;
 using MyTelegram.Domain.Aggregates.Photo;
 using MyTelegram.Schema;
@@ -124,6 +125,12 @@ public static class MyTelegramServerReadModelMongoDbExtensions
 
             .UseMongoDbReadModel<UserConfigAggregate, UserConfigId, UserConfigReadModel>()
             .UseMongoDbReadModel<MessageTokenAggregate, MessageTokenId, MessageTokenReadModel>()
+            .UseMongoDbReadModel<UserAggregate, UserId, UserPasswordReadModel>()
+            .UseMongoDbReadModel<ThemeAggregate, ThemeId, ThemeReadModel>()
+            .UseMongoDbReadModel<BusinessChatLinkAggregate, BusinessChatLinkId, BusinessChatLinkReadModel>()
+            .UseMongoDbReadModel<ChatlistInviteAggregate, ChatlistInviteId, ChatlistInviteReadModel>()
+            .UseMongoDbReadModel<QuickReplyShortcutAggregate, QuickReplyShortcutId, QuickReplyShortcutReadModel>()
+            .UseMongoDbReadModel<StoryAggregate, StoryId, StoryReadModel>()
 
             ;
     }

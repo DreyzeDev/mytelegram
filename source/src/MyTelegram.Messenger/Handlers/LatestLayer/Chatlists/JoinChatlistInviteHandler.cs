@@ -13,10 +13,38 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class JoinChatlistInviteHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestJoinChatlistInvite, MyTelegram.Schema.IUpdates>
+internal sealed class JoinChatlistInviteHandler(ICommandBus commandBus, IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestJoinChatlistInvite, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestJoinChatlistInvite obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestJoinChatlistInvite obj)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(obj.Slug))
+        {
+            RpcErrors.RpcErrors400.InviteSlugEmpty.ThrowRpcError();
+            return default!;
+        }
+
+        var invite = await queryProcessor.ProcessAsync(new GetChatlistInviteBySlugQuery(obj.Slug));
+        if (invite == null)
+        {
+            RpcErrors.RpcErrors400.InviteSlugExpired.ThrowRpcError();
+            return default!;
+        }
+
+        var existing = await queryProcessor.ProcessAsync(new GetImportedDialogFolderQuery(input.UserId, obj.Slug));
+        if (existing == null)
+        {
+            var peers = System.Text.Json.JsonSerializer.Deserialize<List<Peer>>(invite.PeersJson) ?? [];
+            var includePeers = peers.Select(p => new InputPeer(p, 0)).ToList();
+            var filter = new DialogFilter(invite.FilterId, false, false, false, false, false, false, false, false,
+                false, new TTextWithEntities { Text = invite.Title, Entities = [] }, invite.Emoticon, null,
+                [], includePeers, [], true, obj.Slug);
+            var command = new UpdateDialogFilterCommand(
+                DialogFilterId.Create(input.UserId, invite.FilterId),
+                input.ToRequestInfo(), input.UserId, filter);
+            await commandBus.PublishAsync(command, default);
+        }
+
+        return new TUpdates { Updates = [], Chats = [], Users = [], Date = CurrentDate };
     }
 }

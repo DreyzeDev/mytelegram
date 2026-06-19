@@ -16,7 +16,12 @@ using MyTelegram.Domain.Aggregates.Poll;
 using MyTelegram.Domain.Aggregates.Pts;
 using MyTelegram.Domain.Aggregates.PushDevice;
 using MyTelegram.Domain.Aggregates.RpcResult;
+using MyTelegram.Domain.Aggregates.Theme;
+using MyTelegram.Domain.Aggregates.BusinessChatLink;
+using MyTelegram.Domain.Aggregates.ChatlistInvite;
+using MyTelegram.Domain.Aggregates.QuickReplyShortcut;
 using MyTelegram.Domain.Aggregates.Updates;
+using MyTelegram.Domain.Aggregates.User;
 using MyTelegram.Domain.Aggregates.UserName;
 using MyTelegram.EventFlow.ReadStores;
 using MyTelegram.ReadModel.Extensions;
@@ -117,6 +122,12 @@ public static class MyTelegramReadModelInMemoryExtensions
             .UseMyInMemoryReadStoreFor<LanguageAggregate, LanguageId, LanguageReadModel>()
             .UseMyInMemoryReadStoreFor<LanguageTextAggregate, LanguageTextId, LanguageTextReadModel>()
             .UseMyInMemoryReadStoreFor<JoinChannelAggregate, JoinChannelId, JoinChannelRequestReadModel>()
+            .UseMyInMemoryReadStoreFor<UserAggregate, UserId, UserPasswordReadModel>()
+            .UseMyInMemoryReadStoreFor<ThemeAggregate, ThemeId, ThemeReadModel>()
+            .UseMyInMemoryReadStoreFor<BusinessChatLinkAggregate, BusinessChatLinkId, BusinessChatLinkReadModel>()
+            .UseMyInMemoryReadStoreFor<ChatlistInviteAggregate, ChatlistInviteId, ChatlistInviteReadModel>()
+            .UseMyInMemoryReadStoreFor<QuickReplyShortcutAggregate, QuickReplyShortcutId, QuickReplyShortcutReadModel>()
+            .UseMyInMemoryReadStoreFor<StoryAggregate, StoryId, StoryReadModel>()
             ;
 
         return options;

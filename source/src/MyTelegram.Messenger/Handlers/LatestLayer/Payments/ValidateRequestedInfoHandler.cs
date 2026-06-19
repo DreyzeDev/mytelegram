@@ -14,6 +14,6 @@ internal sealed class ValidateRequestedInfoHandler : RpcResultObjectHandler<MyTe
 {
     protected override Task<MyTelegram.Schema.Payments.IValidatedRequestedInfo> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestValidateRequestedInfo obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.IValidatedRequestedInfo>(new MyTelegram.Schema.Payments.TValidatedRequestedInfo { });
     }
 }

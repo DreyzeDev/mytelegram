@@ -11,10 +11,23 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class EditQuickReplyShortcutHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditQuickReplyShortcut, IBool>
+internal sealed class EditQuickReplyShortcutHandler(ICommandBus commandBus, IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditQuickReplyShortcut, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditQuickReplyShortcut obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditQuickReplyShortcut obj)
     {
-        throw new NotImplementedException();
+        var shortcut = await queryProcessor.ProcessAsync(new GetQuickReplyShortcutByIdQuery(input.UserId, obj.ShortcutId));
+        if (shortcut == null)
+        {
+            RpcErrors.RpcErrors400.ShortcutInvalid.ThrowRpcError();
+            return default!;
+        }
+
+        var command = new EditShortcutCommand(
+            QuickReplyShortcutId.Create(input.UserId, obj.ShortcutId),
+            input.ToRequestInfo(),
+            obj.Shortcut);
+        await commandBus.PublishAsync(command, default);
+        return new TBoolTrue();
     }
 }

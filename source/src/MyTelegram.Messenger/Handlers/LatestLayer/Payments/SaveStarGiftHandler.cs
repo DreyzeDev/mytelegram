@@ -1,21 +1,39 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Payments;
-/// <summary>
-/// Display or remove a <a href="https://corefork.telegram.org/api/gifts">received gift »</a> from our profile.
-/// Possible errors
-/// Code Type Description
-/// 400 MESSAGE_ID_INVALID The provided message id is invalid.
-/// 400 SAVED_ID_EMPTY The passed inputSavedStarGiftChat.saved_id is empty.
-/// 400 STARGIFT_OWNER_INVALID You cannot transfer or sell a gift owned by another user.
-/// 400 USER_ID_INVALID The provided user ID is invalid.
-/// <para><c>See <a href="https://corefork.telegram.org/method/payments.saveStarGift"/> </c></para>
-/// </summary>
-/// <remarks>
-/// Access: [User ✔] [Bot ✖] [Anonymous ✖]
-/// </remarks>
-internal sealed class SaveStarGiftHandler : RpcResultObjectHandler<MyTelegram.Schema.Payments.RequestSaveStarGift, IBool>
+
+internal sealed class SaveStarGiftHandler(ICommandBus commandBus, IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Payments.RequestSaveStarGift, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestSaveStarGift obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestSaveStarGift obj)
     {
-        throw new NotImplementedException();
+        int msgId;
+        long ownerPeerId;
+
+        switch (obj.Stargift)
+        {
+            case TInputSavedStarGiftUser u:
+                msgId = u.MsgId;
+                ownerPeerId = input.UserId;
+                break;
+            case TInputSavedStarGiftChat c:
+                msgId = (int)c.SavedId;
+                ownerPeerId = c.Peer is TInputPeerChannel ch ? ch.ChannelId :
+                              c.Peer is TInputPeerUser pu ? pu.UserId : input.UserId;
+                break;
+            default:
+                RpcErrors.RpcErrors400.MessageIdInvalid.ThrowRpcError();
+                return default!;
+        }
+
+        var existing = await queryProcessor.ProcessAsync(new GetUserStarGiftByMsgIdQuery(ownerPeerId, msgId));
+        if (existing == null)
+            RpcErrors.RpcErrors400.StargiftNotFound.ThrowRpcError();
+
+        var command = new SaveGiftCommand(
+            UserStarGiftId.Create(ownerPeerId, msgId),
+            input.ToRequestInfo(),
+            obj.Unsave);
+
+        await commandBus.PublishAsync(command);
+        return new TBoolTrue();
     }
 }

@@ -11,10 +11,42 @@ namespace MyTelegram.Messenger.Handlers.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class CreateForumTopicHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestCreateForumTopic, MyTelegram.Schema.IUpdates>, IObjectHandler
+internal sealed class CreateForumTopicHandler(ICommandBus commandBus, IIdGenerator idGenerator)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestCreateForumTopic, MyTelegram.Schema.IUpdates>, IObjectHandler
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestCreateForumTopic obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestCreateForumTopic obj)
     {
-        throw new NotImplementedException();
+        if (obj.Peer is not TInputPeerChannel inputPeerChannel)
+            RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+
+        var channelId = inputPeerChannel!.ChannelId;
+        var topicId = await idGenerator.NextIdAsync(IdType.MessageId, channelId);
+        var date = CurrentDate;
+
+        var aggregateId = ForumTopicId.Create(channelId, topicId);
+        await commandBus.PublishAsync(new CreateTopicCommand(
+            aggregateId, channelId, topicId, input.UserId,
+            obj.Title, obj.IconColor, obj.IconEmojiId, date));
+
+        return new TUpdates
+        {
+            Updates = new TVector<IUpdate>(
+                new TUpdateNewMessage
+                {
+                    Message = new TMessageService
+                    {
+                        Id = topicId,
+                        Peer = new TPeerChannel { ChannelId = channelId },
+                        Date = date,
+                        Action = new TMessageActionTopicCreate { Title = obj.Title }
+                    },
+                    Pts = 0,
+                    PtsCount = 0
+                }),
+            Users = new TVector<IUser>(),
+            Chats = new TVector<IChat>(),
+            Date = date,
+            Seq = 0
+        };
     }
 }

@@ -12,10 +12,17 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class DeleteExportedInviteHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestDeleteExportedInvite, IBool>
+internal sealed class DeleteExportedInviteHandler(ICommandBus commandBus, IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestDeleteExportedInvite, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestDeleteExportedInvite obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestDeleteExportedInvite obj)
     {
-        throw new NotImplementedException();
+        var invite = await queryProcessor.ProcessAsync(new GetChatlistInviteBySlugQuery(obj.Slug));
+        if (invite != null && invite.UserId == input.UserId)
+        {
+            var command = new DeleteInviteCommand(ChatlistInviteId.Create(input.UserId, obj.Slug), input.ToRequestInfo());
+            await commandBus.PublishAsync(command, default);
+        }
+        return new TBoolTrue();
     }
 }

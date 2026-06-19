@@ -1,23 +1,45 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Account;
-/// <summary>
-/// Send an email verification code.
-/// Possible errors
-/// Code Type Description
-/// 400 EMAIL_INVALID The specified email is invalid.
-/// 400 EMAIL_NOT_ALLOWED The specified email cannot be used to complete the operation.
-/// 400 EMAIL_NOT_SETUP In order to change the login email with emailVerifyPurposeLoginChange, an existing login email must already be set using emailVerifyPurposeLoginSetup.
-/// 400 PHONE_CODE_EMPTY phone_code is missing.
-/// 400 PHONE_HASH_EXPIRED An invalid or expired <code>phone_code_hash</code> was provided.
-/// 400 PHONE_NUMBER_INVALID The phone number is invalid.
-/// <para><c>See <a href="https://corefork.telegram.org/method/account.sendVerifyEmailCode"/> </c></para>
-/// </summary>
-/// <remarks>
-/// Access: [User ✔] [Bot ✖] [Anonymous ✔]
-/// </remarks>
-internal sealed class SendVerifyEmailCodeHandler : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestSendVerifyEmailCode, MyTelegram.Schema.Account.ISentEmailCode>
+
+internal sealed class SendVerifyEmailCodeHandler(
+    IEmailSender emailSender,
+    ICacheManager<EmailCodeCacheItem> cacheManager,
+    IOptionsMonitor<MyTelegramMessengerServerOptions> options,
+    IRandomHelper randomHelper)
+    : RpcResultObjectHandler<MyTelegram.Schema.Account.RequestSendVerifyEmailCode, MyTelegram.Schema.Account.ISentEmailCode>
 {
-    protected override Task<MyTelegram.Schema.Account.ISentEmailCode> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestSendVerifyEmailCode obj)
+    protected override async Task<MyTelegram.Schema.Account.ISentEmailCode> HandleCoreAsync(
+        IRequestInput input, MyTelegram.Schema.Account.RequestSendVerifyEmailCode obj)
     {
-        throw new NotImplementedException();
+        var email = obj.Email?.Trim();
+        if (string.IsNullOrEmpty(email) || !email.Contains('@'))
+            RpcErrors.RpcErrors400.EmailInvalid.ThrowRpcError();
+
+        var sessionKey = GetSessionKey(obj.Purpose);
+
+        var code = options.CurrentValue.FixedEmailVerificationCode;
+        if (string.IsNullOrWhiteSpace(code))
+            code = randomHelper.GenerateRandomNumber(6);
+
+        var ttl = options.CurrentValue.VerificationCodeExpirationSeconds;
+        await cacheManager.SetAsync(EmailCodeCacheItem.GetCacheKey(sessionKey), new EmailCodeCacheItem(email!, code), ttl);
+
+        await emailSender.SendAsync(email!, "Your verification code", $"Your verification code is: {code}");
+
+        var atIndex = email!.IndexOf('@');
+        var maskedLocal = email[..1] + new string('*', Math.Max(0, atIndex - 1));
+        var emailPattern = maskedLocal + email[atIndex..];
+
+        return new MyTelegram.Schema.Account.TSentEmailCode
+        {
+            EmailPattern = emailPattern,
+            Length = code.Length
+        };
     }
+
+    private static string GetSessionKey(IEmailVerifyPurpose purpose) => purpose switch
+    {
+        TEmailVerifyPurposeLoginSetup s => s.PhoneCodeHash,
+        TEmailVerifyPurposeLoginChange => "login_change",
+        _ => "default"
+    };
 }

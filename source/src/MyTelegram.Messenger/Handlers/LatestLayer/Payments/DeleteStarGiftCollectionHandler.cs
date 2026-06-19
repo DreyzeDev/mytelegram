@@ -14,6 +14,6 @@ internal sealed class DeleteStarGiftCollectionHandler : RpcResultObjectHandler<M
 {
     protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestDeleteStarGiftCollection obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<IBool>(new TBoolTrue());
     }
 }

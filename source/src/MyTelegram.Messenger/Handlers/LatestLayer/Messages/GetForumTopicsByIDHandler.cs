@@ -9,10 +9,30 @@ namespace MyTelegram.Messenger.Handlers.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetForumTopicsByIDHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetForumTopicsByID, MyTelegram.Schema.Messages.IForumTopics>, IObjectHandler
+internal sealed class GetForumTopicsByIDHandler(
+    IQueryProcessor queryProcessor,
+    ILayeredService<IForumTopicsConverter> forumTopicsService)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetForumTopicsByID, MyTelegram.Schema.Messages.IForumTopics>, IObjectHandler
 {
-    protected override Task<MyTelegram.Schema.Messages.IForumTopics> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetForumTopicsByID obj)
+    protected override async Task<MyTelegram.Schema.Messages.IForumTopics> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetForumTopicsByID obj)
     {
-        return Task.FromResult<MyTelegram.Schema.Messages.IForumTopics>(new TForumTopics { Chats = [], Messages = [], Topics = [], Users = [] });
+        if (obj.Peer is not TInputPeerChannel inputPeerChannel)
+            return new TForumTopics { Chats = [], Messages = [], Topics = [], Users = [] };
+
+        var channelId = inputPeerChannel.ChannelId;
+        var topicIds = obj.Topics?.ToList() ?? [];
+        var topics = await queryProcessor.ProcessAsync(new GetForumTopicsByIdsQuery(channelId, topicIds));
+
+        var converter = forumTopicsService.GetConverter(input.Layer);
+        var tlTopics = topics.Select(t => converter.ToForumTopic(t)).ToList();
+
+        return new TForumTopics
+        {
+            Topics = new TVector<IForumTopic>(tlTopics),
+            Messages = new TVector<IMessage>(),
+            Chats = new TVector<IChat>(),
+            Users = new TVector<IUser>(),
+            Count = tlTopics.Count
+        };
     }
 }

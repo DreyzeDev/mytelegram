@@ -10,10 +10,67 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class CheckChatlistInviteHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestCheckChatlistInvite, MyTelegram.Schema.Chatlists.IChatlistInvite>
+internal sealed class CheckChatlistInviteHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestCheckChatlistInvite, MyTelegram.Schema.Chatlists.IChatlistInvite>
 {
-    protected override Task<MyTelegram.Schema.Chatlists.IChatlistInvite> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestCheckChatlistInvite obj)
+    protected override async Task<MyTelegram.Schema.Chatlists.IChatlistInvite> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestCheckChatlistInvite obj)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(obj.Slug))
+        {
+            RpcErrors.RpcErrors400.InviteSlugEmpty.ThrowRpcError();
+            return default!;
+        }
+
+        var invite = await queryProcessor.ProcessAsync(new GetChatlistInviteBySlugQuery(obj.Slug));
+        if (invite == null)
+        {
+            RpcErrors.RpcErrors400.InviteSlugExpired.ThrowRpcError();
+            return default!;
+        }
+
+        var existingFolder = await queryProcessor.ProcessAsync(new GetImportedDialogFolderQuery(input.UserId, obj.Slug));
+        var peers = DeserializePeers(invite.PeersJson);
+
+        if (existingFolder != null)
+        {
+            return new MyTelegram.Schema.Chatlists.TChatlistInviteAlready
+            {
+                FilterId = existingFolder.Filter.Id,
+                MissingPeers = [],
+                AlreadyPeers = peers,
+                Chats = [],
+                Users = []
+            };
+        }
+
+        return new MyTelegram.Schema.Chatlists.TChatlistInvite
+        {
+            Title = new TTextWithEntities { Text = invite.Title, Entities = [] },
+            Emoticon = invite.Emoticon,
+            Peers = peers,
+            Chats = [],
+            Users = []
+        };
+    }
+
+    private static TVector<IPeer> DeserializePeers(string peersJson)
+    {
+        var result = new TVector<IPeer>();
+        try
+        {
+            var domainPeers = System.Text.Json.JsonSerializer.Deserialize<List<Peer>>(peersJson);
+            if (domainPeers == null) return result;
+            foreach (var p in domainPeers)
+            {
+                result.Add(p.PeerType switch
+                {
+                    PeerType.User => (IPeer)new TPeerUser { UserId = p.PeerId },
+                    PeerType.Chat => new TPeerChat { ChatId = p.PeerId },
+                    _ => new TPeerChannel { ChannelId = p.PeerId }
+                });
+            }
+        }
+        catch { }
+        return result;
     }
 }

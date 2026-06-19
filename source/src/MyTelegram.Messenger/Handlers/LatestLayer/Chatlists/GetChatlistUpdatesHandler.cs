@@ -11,10 +11,37 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Chatlists;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetChatlistUpdatesHandler : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestGetChatlistUpdates, MyTelegram.Schema.Chatlists.IChatlistUpdates>
+internal sealed class GetChatlistUpdatesHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Chatlists.RequestGetChatlistUpdates, MyTelegram.Schema.Chatlists.IChatlistUpdates>
 {
-    protected override Task<MyTelegram.Schema.Chatlists.IChatlistUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestGetChatlistUpdates obj)
+    protected override async Task<MyTelegram.Schema.Chatlists.IChatlistUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Chatlists.RequestGetChatlistUpdates obj)
     {
-        throw new NotImplementedException();
+        var missingPeers = new TVector<IPeer>();
+
+        var filter = await queryProcessor.ProcessAsync(new GetDialogFilterByIdQuery(input.UserId, obj.Chatlist.FilterId));
+        if (filter?.ImportedFromSlug == null)
+            return new MyTelegram.Schema.Chatlists.TChatlistUpdates { MissingPeers = missingPeers, Chats = [], Users = [] };
+
+        var invite = await queryProcessor.ProcessAsync(new GetChatlistInviteBySlugQuery(filter.ImportedFromSlug));
+        if (invite == null)
+            return new MyTelegram.Schema.Chatlists.TChatlistUpdates { MissingPeers = missingPeers, Chats = [], Users = [] };
+
+        var invitePeers = System.Text.Json.JsonSerializer.Deserialize<List<Peer>>(invite.PeersJson) ?? [];
+        var existingPeerIds = filter.Filter.IncludePeers.Select(p => p.Peer.PeerId).ToHashSet();
+
+        foreach (var p in invitePeers)
+        {
+            if (!existingPeerIds.Contains(p.PeerId))
+            {
+                missingPeers.Add(p.PeerType switch
+                {
+                    PeerType.User => (IPeer)new TPeerUser { UserId = p.PeerId },
+                    PeerType.Chat => new TPeerChat { ChatId = p.PeerId },
+                    _ => new TPeerChannel { ChannelId = p.PeerId }
+                });
+            }
+        }
+
+        return new MyTelegram.Schema.Chatlists.TChatlistUpdates { MissingPeers = missingPeers, Chats = [], Users = [] };
     }
 }

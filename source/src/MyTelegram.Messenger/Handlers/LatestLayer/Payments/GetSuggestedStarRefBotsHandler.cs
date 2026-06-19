@@ -13,6 +13,6 @@ internal sealed class GetSuggestedStarRefBotsHandler : RpcResultObjectHandler<My
 {
     protected override Task<MyTelegram.Schema.Payments.ISuggestedStarRefBots> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetSuggestedStarRefBots obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<MyTelegram.Schema.Payments.ISuggestedStarRefBots>(new MyTelegram.Schema.Payments.TSuggestedStarRefBots { Count = 0, SuggestedBots = [], Users = [], Chats = [] });
     }
 }

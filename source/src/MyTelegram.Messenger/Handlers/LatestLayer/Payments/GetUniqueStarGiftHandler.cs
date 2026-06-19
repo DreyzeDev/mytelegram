@@ -13,6 +13,7 @@ internal sealed class GetUniqueStarGiftHandler : RpcResultObjectHandler<MyTelegr
 {
     protected override Task<MyTelegram.Schema.Payments.IUniqueStarGift> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetUniqueStarGift obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.StargiftSlugInvalid.ThrowRpcError();
+        return default!;
     }
 }

@@ -1,5 +1,3 @@
-using TStickerSet = MyTelegram.Schema.Messages.TStickerSet;
-
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <summary>
 /// Get info about a stickerset
@@ -12,20 +10,30 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetStickerSetHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetStickerSet, MyTelegram.Schema.Messages.IStickerSet>
+internal sealed class GetStickerSetHandler(
+    IQueryProcessor queryProcessor,
+    ILayeredService<IStickerSetConverter> stickerSetService,
+    ILayeredService<IDocumentConverter> documentService)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetStickerSet, MyTelegram.Schema.Messages.IStickerSet>
 {
     protected override async Task<MyTelegram.Schema.Messages.IStickerSet> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetStickerSet obj)
     {
-        return new TStickerSet
+        IStickerSetReadModel? stickerSet = obj.Stickerset switch
         {
-            Packs = [],
-            Documents = [],
-            Keywords = [],
-            Set = new Schema.TStickerSet
-            {
-                Title = string.Empty,
-                ShortName = string.Empty
-            }
+            TInputStickerSetID byId => await queryProcessor.ProcessAsync(new GetStickerSetByIdQuery(byId.Id)),
+            TInputStickerSetShortName byName => await queryProcessor.ProcessAsync(new GetStickerSetByNameQuery(byName.ShortName)),
+            _ => null
         };
+
+        if (stickerSet == null)
+        {
+            RpcErrors.RpcErrors406.StickersetInvalid.ThrowRpcError();
+        }
+
+        var documentReadModels = await queryProcessor.ProcessAsync(new GetDocumentsByIdListQuery(stickerSet!.StickerDocumentIds));
+        var docConverter = documentService.GetConverter(input.Layer);
+        var documents = documentReadModels.Select(d => (Schema.IDocument)docConverter.ToDocument(d)).ToList();
+
+        return stickerSetService.GetConverter(input.Layer).ToMessagesStickerSet(input.UserId, stickerSet, documents);
     }
 }

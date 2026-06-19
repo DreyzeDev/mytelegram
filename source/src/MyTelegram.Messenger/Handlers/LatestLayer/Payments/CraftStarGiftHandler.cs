@@ -12,6 +12,7 @@ internal sealed class CraftStarGiftHandler : RpcResultObjectHandler<MyTelegram.S
 {
     protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestCraftStarGift obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.PaymentRequired.ThrowRpcError();
+        return default!;
     }
 }

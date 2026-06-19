@@ -20,7 +20,8 @@ public partial class MessageDomainEventHandler(
     IEditMessageConverterService editMessageConverterService,
     IInviteToChannelConverterService inviteToChannelConverterService,
     IJoinChannelConverterService joinChannelConverterService,
-    IPhotoAppService photoAppService)
+    IPhotoAppService photoAppService,
+    IPushNotificationSender pushNotificationSender)
     : DomainEventHandlerBase(objectMessageSender,
             commandBus,
             idGenerator,
@@ -30,7 +31,8 @@ public partial class MessageDomainEventHandler(
         ISubscribeSynchronousTo<MessageAggregate, MessageId, ChannelMessagePinnedEvent>,
         ISubscribeSynchronousTo<MessageAggregate, MessageId, MessageReplyUpdatedEvent>,
         ISubscribeSynchronousTo<SendMessageSaga, SendMessageSagaId, SendOutboxMessageCompletedSagaEvent>,
-        ISubscribeSynchronousTo<SendMessageSaga, SendMessageSagaId, ReceiveInboxMessageCompletedSagaEvent>
+        ISubscribeSynchronousTo<SendMessageSaga, SendMessageSagaId, ReceiveInboxMessageCompletedSagaEvent>,
+        ISubscribeSynchronousTo<MessageAggregate, MessageId, MessageReactionSentEvent>
 {
     public Task HandleAsync(
         IDomainEvent<EditMessageSaga, EditMessageSagaId, InboxMessageEditCompletedSagaEvent> domainEvent,
@@ -249,6 +251,19 @@ public partial class MessageDomainEventHandler(
             pts: item.Pts,
             senderUserId: item.SenderPeer.PeerId
         );
+
+        if (item.OwnerPeer.PeerType == PeerType.User && !aggregateEvent.MessageItem.Out)
+        {
+            var senderName = aggregateEvent.MessageItem.SenderPeer.PeerId.ToString();
+            var msgText = aggregateEvent.MessageItem.Message ?? string.Empty;
+            _ = pushNotificationSender.SendAsync(item.OwnerPeer.PeerId, senderName,
+                msgText.Length > 100 ? msgText[..100] : msgText,
+                new PushNotificationCustomData
+                {
+                    MsgId = item.MessageId,
+                    FromId = aggregateEvent.MessageItem.SenderPeer.PeerId
+                });
+        }
     }
 
     private Task HandleReceiveMessageCompletedAsync(ReceiveInboxMessageCompletedSagaEvent aggregateEvent)
@@ -320,6 +335,83 @@ public partial class MessageDomainEventHandler(
             pts: item.Pts,
             updatesType: updatesType
         );
+    }
+
+    public async Task HandleAsync(
+        IDomainEvent<MessageAggregate, MessageId, MessageReactionSentEvent> domainEvent,
+        CancellationToken cancellationToken)
+    {
+        var e = domainEvent.AggregateEvent;
+        var ownerPeerId = e.OwnerPeerId;
+        var messageId = e.MessageId;
+        var toPeer = e.ToPeer;
+
+        var msgReadModel = await queryProcessor.ProcessAsync(
+            new GetMessageByIdQuery(MessageId.Create(ownerPeerId, messageId).Value), cancellationToken);
+
+        if (msgReadModel == null) return;
+
+        var reactionCounts = new TVector<IReactionCount>();
+        if (msgReadModel.Reactions != null)
+        {
+            foreach (var rc in msgReadModel.Reactions)
+            {
+                reactionCounts.Add(new TReactionCount
+                {
+                    Reaction = rc.GetReaction(),
+                    Count = rc.Count
+                });
+            }
+        }
+
+        var messageReactions = new TMessageReactions
+        {
+            Min = true,
+            Results = reactionCounts
+        };
+
+        IPeer schemaOwnerPeer = toPeer.PeerType == PeerType.Channel
+            ? new TPeerChannel { ChannelId = toPeer.PeerId }
+            : new TPeerUser { UserId = ownerPeerId };
+
+        var update = new TUpdateMessageReactions
+        {
+            Peer = schemaOwnerPeer,
+            MsgId = messageId,
+            Reactions = messageReactions
+        };
+
+        var updates = new TUpdates
+        {
+            Updates = new TVector<IUpdate>(update),
+            Users = [],
+            Chats = [],
+            Date = DateTime.UtcNow.ToTimestamp()
+        };
+
+        var ownerPeer = toPeer.PeerType == PeerType.Channel
+            ? toPeer
+            : new Peer(PeerType.User, ownerPeerId);
+
+        await PushUpdatesToPeerAsync(ownerPeer, updates);
+
+        if (toPeer.PeerType == PeerType.User && toPeer.PeerId != ownerPeerId)
+        {
+            var recipientSchemaUpdate = new TUpdateMessageReactions
+            {
+                Peer = new TPeerUser { UserId = e.SenderPeer.PeerId },
+                MsgId = msgReadModel.SenderMessageId,
+                Reactions = messageReactions
+            };
+            var recipientUpdates = new TUpdates
+            {
+                Updates = new TVector<IUpdate>(recipientSchemaUpdate),
+                Users = [],
+                Chats = [],
+                Date = DateTime.UtcNow.ToTimestamp()
+            };
+            await PushUpdatesToPeerAsync(toPeer, recipientUpdates);
+        }
     }
 
     private void SetChannelInfo(IRequestWithAccessHashKeyId request,

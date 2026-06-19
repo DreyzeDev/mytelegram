@@ -13,6 +13,6 @@ internal sealed class ToggleStarGiftsPinnedToTopHandler : RpcResultObjectHandler
 {
     protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestToggleStarGiftsPinnedToTop obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<IBool>(new TBoolTrue());
     }
 }

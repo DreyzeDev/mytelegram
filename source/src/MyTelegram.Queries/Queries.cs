@@ -685,3 +685,17 @@ public record GetUserConfigByKeyQuery(long UserId, string Key) : IQuery<IUserCon
 public record GetChannelMemberIdListQuery(long ChannelId, List<long> MemberUserIds) : IQuery<IReadOnlyCollection<long>>;
 public record GetMessageByBatchIdQuery(Guid BatchId, long ExcludePeerId) : IQuery<IMessageReadModel?>;
 public record GetFutureCreatorAfterLeaveQuery(long ChannelId, long CurrentCreatorUserId) : IQuery<long?>;
+
+public record GetAllStarGiftsQuery : IQuery<IReadOnlyCollection<IStarGiftReadModel>>;
+public record GetStarGiftByIdQuery(long GiftId) : IQuery<IStarGiftReadModel?>;
+public record GetUserStarGiftsQuery(long OwnerPeerId, bool? ExcludeUnsaved, int Offset, int Limit) : IQuery<IReadOnlyCollection<IUserStarGiftReadModel>>;
+public record GetUserStarGiftByMsgIdQuery(long OwnerPeerId, int MsgId) : IQuery<IUserStarGiftReadModel?>;
+
+public record GetBusinessChatLinkBySlugQuery(string Slug) : IQuery<IBusinessChatLinkReadModel?>;
+public record GetBusinessChatLinksByUserIdQuery(long UserId) : IQuery<IReadOnlyCollection<IBusinessChatLinkReadModel>>;
+
+public record GetChatlistInviteBySlugQuery(string Slug) : IQuery<IChatlistInviteReadModel?>;
+public record GetChatlistInvitesByFilterIdQuery(long UserId, int FilterId) : IQuery<IReadOnlyCollection<IChatlistInviteReadModel>>;
+
+public record GetQuickReplyShortcutByIdQuery(long UserId, int ShortcutId) : IQuery<IQuickReplyReadModel?>;
+public record GetQuickReplyShortcutsByUserIdQuery(long UserId) : IQuery<IReadOnlyCollection<IQuickReplyReadModel>>;
