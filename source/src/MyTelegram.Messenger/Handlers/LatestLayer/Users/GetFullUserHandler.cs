@@ -16,12 +16,11 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Users;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetFullUserHandler(IPeerHelper peerHelper, IQueryProcessor queryProcessor, IUserConverterService userConverterService, ILayeredService<IPeerSettingsConverter> peerSettingsLayeredService, ILayeredService<IPeerNotifySettingsConverter> peerNotifySettingsLayeredService, IBlockCacheAppService blockCacheAppService, IAccessHashHelper accessHashHelper, IContactHelper contactHelper, IPeerSettingsAppService peerSettingsAppService,
+internal sealed class GetFullUserHandler(IPeerHelper peerHelper, IQueryProcessor queryProcessor, IUserConverterService userConverterService, ILayeredService<IPeerSettingsConverter> peerSettingsLayeredService, ILayeredService<IPeerNotifySettingsConverter> peerNotifySettingsLayeredService, IBlockCacheAppService blockCacheAppService, IContactHelper contactHelper, IPeerSettingsAppService peerSettingsAppService,
     IChatConverterService chatConverterService, IPhotoAppService photoAppService, IUserAppService userAppService, IPrivacyAppService privacyAppService) : RpcResultObjectHandler<MyTelegram.Schema.Users.RequestGetFullUser, MyTelegram.Schema.Users.IUserFull>
 {
     protected override async Task<MyTelegram.Schema.Users.IUserFull> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Users.RequestGetFullUser obj)
     {
-        await accessHashHelper.CheckAccessHashAsync(input, obj.Id);
         var selfUserId = input.UserId;
         var targetPeer = peerHelper.GetPeer(obj.Id, input.UserId);
         var targetUserId = targetPeer.PeerId;
@@ -59,8 +58,17 @@ internal sealed class GetFullUserHandler(IPeerHelper peerHelper, IQueryProcessor
         if (userReadModel.PersonalChannelId != null)
         {
             var channel = await chatConverterService.GetChannelAsync(input, userReadModel.PersonalChannelId.Value,
-                false, null, input.Layer);
-            result.Chats.Add(channel);
+                false, null, input.Layer, false);
+            if (channel != null!)
+            {
+                result.Chats.Add(channel);
+            }
+            else
+            {
+                userFull.PersonalChannelId = null;
+                userFull.PersonalChannelMessage = null;
+            }
+
         }
 
         return result;
