@@ -20,4 +20,14 @@ public interface IStickerSetReadModel : IReadModel
     List<StickerKeywordItem> Keywords { get; }
     List<long> StickerDocumentIds { get; }
     List<long> Covers { get; }
+
+    /// <summary>
+    /// UserId of the user who created this stickerset via stickers.createStickerSet, 0 if unknown/system.
+    /// </summary>
+    long CreatorUserId { get; }
+
+    /// <summary>
+    /// Whether this stickerset is/was featured.
+    /// </summary>
+    bool Featured { get; }
 }

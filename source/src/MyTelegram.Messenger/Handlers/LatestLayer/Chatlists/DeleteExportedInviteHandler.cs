@@ -20,7 +20,7 @@ internal sealed class DeleteExportedInviteHandler(ICommandBus commandBus, IQuery
         var invite = await queryProcessor.ProcessAsync(new GetChatlistInviteBySlugQuery(obj.Slug));
         if (invite != null && invite.UserId == input.UserId)
         {
-            var command = new DeleteInviteCommand(ChatlistInviteId.Create(input.UserId, obj.Slug), input.ToRequestInfo());
+            var command = new DeleteInviteCommand(ChatlistInviteId.Create(input.UserId, obj.Slug));
             await commandBus.PublishAsync(command, default);
         }
         return new TBoolTrue();

@@ -60,4 +60,9 @@ public interface IMessageReadModel : IReadModel, IReactionItem
     List<long>? MentionedUserIds { get; }
     long? TodoId { get; }
     ReadOnlyMemory<byte>? EncryptedData { get; }
+
+    // https://corefork.telegram.org/api/factcheck
+    string? FactCheckCountry { get; }
+    ITextWithEntities? FactCheckText { get; }
+    long FactCheckHash { get; }
 }

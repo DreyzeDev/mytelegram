@@ -14,10 +14,53 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class SendEncryptedFileHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestSendEncryptedFile, MyTelegram.Schema.Messages.ISentEncryptedMessage>
+internal sealed class SendEncryptedFileHandler(ICommandBus commandBus, IIdGenerator idGenerator, IQueryProcessor queryProcessor, IObjectMessageSender messageSender)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestSendEncryptedFile, MyTelegram.Schema.Messages.ISentEncryptedMessage>
 {
-    protected override Task<MyTelegram.Schema.Messages.ISentEncryptedMessage> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestSendEncryptedFile obj)
+    protected override async Task<MyTelegram.Schema.Messages.ISentEncryptedMessage> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestSendEncryptedFile obj)
     {
-        throw new NotImplementedException();
+        var peer = obj.Peer as TInputEncryptedChat;
+        if (peer is null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+
+        var chat = await queryProcessor.ProcessAsync(new GetEncryptedChatByIdQuery(peer!.ChatId), default);
+        if (chat == null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+        if (chat!.ChatState == "discarded")
+            RpcErrors.RpcErrors400.EncryptionDeclined.ThrowRpcError();
+
+        var isAdmin = input.UserId == chat.AdminId;
+        var recipientId = isAdmin ? chat.ParticipantId : chat.AdminId;
+        var recipientPermAuthKeyId = isAdmin ? chat.ParticipantPermAuthKeyId : chat.AdminPermAuthKeyId;
+
+        var qts = await idGenerator.NextIdAsync(IdType.Qts, recipientId);
+        var date = CurrentDate;
+
+        // Resolve the attached encrypted file
+        IEncryptedFile encryptedFile = obj.File switch
+        {
+            TInputEncryptedFileUploaded f => new TEncryptedFile
+            {
+                Id = f.Id, AccessHash = Random.Shared.NextInt64(),
+                Size = 0, DcId = 1, KeyFingerprint = f.KeyFingerprint
+            },
+            TInputEncryptedFileBigUploaded f => new TEncryptedFile
+            {
+                Id = f.Id, AccessHash = Random.Shared.NextInt64(),
+                Size = 0, DcId = 1, KeyFingerprint = f.KeyFingerprint
+            },
+            _ => new TEncryptedFileEmpty()
+        };
+
+        var fileBytes = encryptedFile.ToBytes();
+
+        var command = new SendEncryptedMessageCommand(
+            EncryptedMessageId.Create(obj.RandomId),
+            peer!.ChatId, recipientId, recipientPermAuthKeyId,
+            obj.Data.ToArray(), fileBytes, qts, obj.RandomId, SendMessageType.Media, date);
+        await commandBus.PublishAsync(command, default);
+
+
+        return new MyTelegram.Schema.Messages.TSentEncryptedFile { Date = date, File = encryptedFile };
     }
 }

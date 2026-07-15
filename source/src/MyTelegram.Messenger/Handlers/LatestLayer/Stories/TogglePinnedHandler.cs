@@ -9,10 +9,31 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Stories;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class TogglePinnedHandler : RpcResultObjectHandler<MyTelegram.Schema.Stories.RequestTogglePinned, TVector<int>>
+internal sealed class TogglePinnedHandler(
+    ICommandBus commandBus,
+    IQueryProcessor queryProcessor,
+    IPeerHelper peerHelper)
+    : RpcResultObjectHandler<MyTelegram.Schema.Stories.RequestTogglePinned, TVector<int>>
 {
-    protected override Task<TVector<int>> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestTogglePinned obj)
+    protected override async Task<TVector<int>> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestTogglePinned obj)
     {
-        return Task.FromResult<TVector<int>>([]);
+        var ownerPeer = peerHelper.GetPeer(obj.Peer, input.UserId) ?? new Peer(PeerType.User, input.UserId);
+        var toggled = new List<int>();
+
+        foreach (var storyId in obj.Id)
+        {
+            var existing = await queryProcessor.ProcessAsync(
+                new GetStoryByIdQuery(ownerPeer.PeerId, storyId), default);
+            if (existing == null)
+                continue;
+
+            var command = new TogglePinnedCommand(
+                StoryId.Create(ownerPeer.PeerId, storyId),
+                obj.Pinned);
+            await commandBus.PublishAsync(command, default);
+            toggled.Add(storyId);
+        }
+
+        return new TVector<int>(toggled);
     }
 }

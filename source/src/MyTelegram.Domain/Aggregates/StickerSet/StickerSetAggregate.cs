@@ -27,13 +27,15 @@ public class StickerSetAggregate : AggregateRoot<StickerSetAggregate, StickerSet
         int count,
         List<PhotoSize>? thumbs,
         int? thumbVersion,
-        long? thumbDocumentId)
+        long? thumbDocumentId,
+        long creatorUserId = 0,
+        bool featured = false)
     {
         if (IsNew)
         {
             Emit(new StickerSetCreatedEvent(stickerSetId, accessHash, title, shortName, stickerSetType,
                 masks, emojis, textColor, channelEmojiStatus, packs, keywords, stickerDocumentIds,
-                covers, count, thumbs, thumbVersion, thumbDocumentId));
+                covers, count, thumbs, thumbVersion, thumbDocumentId, creatorUserId, featured));
         }
     }
 }

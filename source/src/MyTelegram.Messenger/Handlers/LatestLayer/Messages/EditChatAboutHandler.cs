@@ -25,6 +25,7 @@ internal sealed class EditChatAboutHandler(ICommandBus commandBus, IPeerHelper p
         switch (peer.PeerType)
         {
             case PeerType.Channel:
+            case PeerType.Chat:
             {
                 if (obj.Peer is TInputPeerChannel inputChannel)
                 {

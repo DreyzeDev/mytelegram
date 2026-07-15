@@ -10,10 +10,18 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetChatsHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetChats, MyTelegram.Schema.Messages.IChats>
+internal sealed class GetChatsHandler(IQueryProcessor queryProcessor, IPhotoAppService photoAppService, IChatConverterService chatConverterService) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetChats, MyTelegram.Schema.Messages.IChats>
 {
-    protected override Task<MyTelegram.Schema.Messages.IChats> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetChats obj)
+    protected override async Task<MyTelegram.Schema.Messages.IChats> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetChats obj)
     {
-        throw new NotImplementedException();
+        var channelIds = obj.Id.Distinct().ToList();
+        var channelReadModels = await queryProcessor.ProcessAsync(new GetChannelByChannelIdListQuery(channelIds));
+        var photoReadModels = await photoAppService.GetPhotosAsync(channelReadModels);
+        var channelMemberReadModels = await queryProcessor.ProcessAsync(new GetChannelMemberListByChannelIdListQuery(input.UserId, [..channelReadModels.Select(p => p.ChannelId)]));
+        var channels = chatConverterService.ToChannelList(input, channelReadModels, photoReadModels, channelMemberReadModels, layer: input.Layer);
+        return new TChats
+        {
+            Chats = [..channels]
+        };
     }
 }

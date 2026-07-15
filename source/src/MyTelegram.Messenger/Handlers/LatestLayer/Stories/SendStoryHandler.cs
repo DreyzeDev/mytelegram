@@ -53,7 +53,6 @@ internal sealed class SendStoryHandler(
 
         var command = new CreateStoryCommand(
             StoryId.Create(ownerPeer.PeerId, storyId),
-            input.ToRequestInfo(),
             storyItem);
         await commandBus.PublishAsync(command, default);
 

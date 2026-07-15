@@ -14,4 +14,6 @@ public interface IEncryptedChatReadModel : IReadModel
     long ParticipantPermAuthKeyId { get; }
     long ParticipantId { get; }
     long RandomId { get; }
+    int Date { get; }
+    string ChatState { get; }
 }

@@ -9,7 +9,7 @@ public class GetForumTopicsQueryHandler(IQueryOnlyReadModelStore<ForumTopicReadM
                  (query.Q == null || p.Title.Contains(query.Q)) &&
                  (query.OffsetTopic == 0 || p.TopicId < query.OffsetTopic),
             p => (IForumTopicReadModel)p,
-            orderBy: q => q.OrderByDescending(p => p.TopicId),
-            take: query.Limit > 0 ? query.Limit : 100,
+            limit: query.Limit > 0 ? query.Limit : 100,
+            sort: new SortOptions<ForumTopicReadModel>(p => p.TopicId, SortType.Descending),
             cancellationToken: cancellationToken);
 }

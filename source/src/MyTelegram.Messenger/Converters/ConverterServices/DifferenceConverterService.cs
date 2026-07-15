@@ -1,4 +1,4 @@
-﻿using MyTelegram.Schema.Updates;
+using MyTelegram.Schema.Updates;
 
 namespace MyTelegram.Messenger.Converters.ConverterServices;
 
@@ -73,12 +73,41 @@ public class DifferenceConverterService(
 
         var layeredUpdates = updateList.Select(p => updatesResponseService.ToLayeredData(output.SelfUserId, request.AccessHashKeyId, p, layer));
 
+        var newEncryptedMessages = new List<IEncryptedMessage>();
+        if (encryptedMessageReadModels?.Count > 0)
+        {
+            foreach (var readModel in encryptedMessageReadModels)
+            {
+                if (readModel.MessageType == SendMessageType.MessageService)
+                {
+                    newEncryptedMessages.Add(new TEncryptedMessageService
+                    {
+                        RandomId = readModel.RandomId,
+                        ChatId = (int)readModel.ChatId,
+                        Date = readModel.Date,
+                        Bytes = readModel.Data
+                    });
+                }
+                else
+                {
+                    newEncryptedMessages.Add(new TEncryptedMessage
+                    {
+                        RandomId = readModel.RandomId,
+                        ChatId = (int)readModel.ChatId,
+                        Date = readModel.Date,
+                        Bytes = readModel.Data,
+                        File = new TEncryptedFileEmpty()
+                    });
+                }
+            }
+        }
+
         if (updateList.Count == limit)
         {
             var differenceSlice = new TDifferenceSlice
             {
                 Chats = [.. channelList],
-                NewEncryptedMessages = [],
+                NewEncryptedMessages = [.. newEncryptedMessages],
                 NewMessages = [.. messageList],
                 OtherUpdates = [.. layeredUpdates],
                 Users = [.. userList],
@@ -97,7 +126,7 @@ public class DifferenceConverterService(
             return differenceSlice;
         }
 
-        var newEncryptedMessages = Array.Empty<IEncryptedMessage>();
+
 
         var difference = new TDifference
         {

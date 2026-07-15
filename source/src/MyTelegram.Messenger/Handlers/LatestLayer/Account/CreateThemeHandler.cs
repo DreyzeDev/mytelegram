@@ -28,7 +28,6 @@ internal sealed class CreateThemeHandler(ICommandBus commandBus, IIdGenerator id
 
         var command = new CreateThemeCommand(
             ThemeId.Create(input.UserId, slug),
-            input.ToRequestInfo(),
             input.UserId,
             themeId,
             slug,

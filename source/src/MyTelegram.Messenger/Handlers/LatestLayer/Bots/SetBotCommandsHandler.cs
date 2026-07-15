@@ -1,4 +1,5 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Bots;
+
 /// <summary>
 /// Set bot command list
 /// Possible errors
@@ -9,15 +10,21 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Bots;
 /// 400 PEER_ID_INVALID The provided peer id is invalid.
 /// 400 USER_BOT_REQUIRED This method can only be called by a bot.
 /// 400 USER_ID_INVALID The provided user ID is invalid.
-/// <para><c>See <a href="https://corefork.telegram.org/method/bots.setBotCommands"/> </c></para>
+/// <para><c>See <a href="https://corefork.telegram.org/method/bots.setBotCommands"/></c></para>
 /// </summary>
 /// <remarks>
 /// Access: [User ✖] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class SetBotCommandsHandler : RpcResultObjectHandler<MyTelegram.Schema.Bots.RequestSetBotCommands, IBool>
+internal sealed class SetBotCommandsHandler(ICommandBus commandBus)
+    : RpcResultObjectHandler<MyTelegram.Schema.Bots.RequestSetBotCommands, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Bots.RequestSetBotCommands obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Bots.RequestSetBotCommands obj)
     {
-        throw new NotImplementedException();
+        var domainCommands = obj.Commands.Select(c => new MyTelegram.BotCommand(c.Command, c.Description)).ToList();
+
+        var command = new UpdateBotCommandsCommand(BotId.Create(input.UserId), domainCommands);
+        await commandBus.PublishAsync(command, default);
+
+        return new TBoolTrue();
     }
 }

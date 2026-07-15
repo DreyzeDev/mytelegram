@@ -34,4 +34,5 @@ public enum IdType
     TodoId = 27,
     StoryAlbumId = 28,
     CollectionId = 29,
+    PhoneCallId = 30,
 }

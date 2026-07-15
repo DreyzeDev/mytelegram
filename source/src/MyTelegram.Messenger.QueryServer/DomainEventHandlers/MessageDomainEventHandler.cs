@@ -252,7 +252,8 @@ public partial class MessageDomainEventHandler(
             senderUserId: item.SenderPeer.PeerId
         );
 
-        if (item.OwnerPeer.PeerType == PeerType.User && !aggregateEvent.MessageItem.Out)
+        if (item.OwnerPeer.PeerType == PeerType.User &&
+            aggregateEvent.MessageItem.SenderPeer.PeerId != aggregateEvent.MessageItem.OwnerPeer.PeerId)
         {
             var senderName = aggregateEvent.MessageItem.SenderPeer.PeerId.ToString();
             var msgText = aggregateEvent.MessageItem.Message ?? string.Empty;

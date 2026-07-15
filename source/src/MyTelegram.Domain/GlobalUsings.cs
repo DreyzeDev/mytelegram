@@ -1,6 +1,7 @@
 ﻿global using EventFlow.Aggregates;
 global using EventFlow.Core;
 global using EventFlow.EventStores;
+global using EventFlow.Exceptions;
 global using EventFlow.Extensions;
 global using EventFlow.Provided.Specifications;
 global using EventFlow.Sagas;

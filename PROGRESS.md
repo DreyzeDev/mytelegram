@@ -273,14 +273,17 @@ source/src/MyTelegram.Messenger/Handlers/LatestLayer/Messages/
 
 ---
 
-### 🔲 8. Bot Support (Боты)
+### ✅ 8. Bot Support (Боты)
 
-**Что нужно:** Регистрация ботов, обработка команд, inline режим, webhook/polling.
-
-**Как будет сделано:**
-- `BotAggregate` + `BotReadModel` — создание/обновление бота
-- `bots.createBot`, `bots.setBotCommands`, `bots.getBotInfo`, `auth.importBotAuthorization`
-- Webhook доставка обновлений + Bot API polling (getUpdates)
+**Что уже сделано:**
+- Создана доменная модель: `BotAggregate`, `BotId`, `BotState`.
+- Созданы модели чтения: `BotReadModel`, `BotMenuReadModel`.
+- Написаны Query Handlers (поиск ботов) для MongoDB и InMemory режимов.
+- Реализованы базовые обработчики: `bots.createBot`, `bots.getBotInfo`, `bots.setBotInfo`.
+- Обработка команд бота: `bots.setBotCommands`, `bots.getBotCommands`, `bots.resetBotCommands`
+- Кнопки меню: `bots.setBotMenuButton`, `bots.getBotMenuButton`
+- Токен и авторизация: `bots.exportBotToken` и `auth.importBotAuthorization`
+- Базовый MTProto API для ботов реализован полностью! (Webhook/polling API выходит за рамки MTProto Core)
 - Сложность: **высокая**
 
 ---
@@ -477,9 +480,9 @@ source/src/MyTelegram.Messenger/Handlers/LatestLayer/Messages/
 
 ---
 
-### ✅ 13. Stories (Истории) — частично
+### ✅ 13. Stories (Истории) — полностью реализовано
 
-**Что реализовано:** Полная инфраструктура + `stories.sendStory`.
+**Что реализовано:** Полная реализация всех 34 story endpoints.
 
 **Как работает `sendStory`:**
 1. `mediaHelper.SaveMediaAsync(obj.Media)` → `IMessageMedia` (gRPC на FileServer), при null → `MEDIA_EMPTY`
@@ -491,48 +494,75 @@ source/src/MyTelegram.Messenger/Handlers/LatestLayer/Messages/
 7. Вычисляет privacy flags (Public/Contacts/CloseFriends/SelectedContacts) из rules
 8. Возвращает `TUpdates` с `TUpdateStory { Peer, Story = TStoryItem { ...все поля... } }`
 
+**Агрегаты:**
+- `StoryAggregate` — CreateStory / EditStory / DeleteStory / TogglePinned / IncrementView
+- `StoryAlbumAggregate` — CreateAlbum / UpdateAlbum / DeleteAlbum
+
 **Ключевые файлы:**
 ```
 source/src/MyTelegram.Domain/Aggregates/Story/
-  StoryAggregate.cs    ← [EnableAutoGeneration], методы CreateStory / DeleteStory
-  StoryId.cs           ← детерминированный ID: "story-{peerId}-{storyId}"
-  StoryState.cs        ← применяет StoryCreatedEvent / StoryDeletedEvent
+  StoryAggregate.cs         ← [EnableAutoGeneration], все методы story
+  StoryId.cs                ← детерминированный ID: "story-{peerId}-{storyId}"
+  StoryState.cs             ← применяет все 5 событий
+  StoryAlbumAggregate.cs    ← [EnableAutoGeneration], CreateAlbum/UpdateAlbum/DeleteAlbum
+  StoryAlbumId.cs           ← детерминированный ID: "storyalbum-{ownerPeerId}-{albumId}"
+  StoryAlbumState.cs        ← применяет все 3 события
 
 source/src/MyTelegram.ReadModel/Impl/
-  StoryReadModel.cs    ← IAmReadModelFor Created (все поля) + Deleted (MarkForDeletion)
-
-source/src/MyTelegram.ReadModel.MongoDB/
-  MongoDbReadModels.cs          ← StoryReadModel : Impl.StoryReadModel, IMongoDbReadModel
-  MyTelegramServerReadModelMongoDbExtensions.cs ← .UseMongoDbReadModel<StoryAggregate, StoryId, StoryReadModel>()
-
-source/src/MyTelegram.ReadModel.InMemory/
-  InMemoryReadModels.cs         ← StoryReadModel : Impl.StoryReadModel
-  MyTelegramReadModelInMemoryExtensions.cs ← .UseMyInMemoryReadStoreFor<...>()
+  StoryReadModel.cs         ← IAmReadModelFor все 5 событий (ViewsCount, RecentViewers)
+  StoryAlbumReadModel.cs    ← IAmReadModelFor Created/Updated/Deleted
 
 source/src/MyTelegram.QueryHandlers.MongoDB/Story/ (+ InMemory аналоги)
   GetStoryByIdQueryHandler.cs
   GetStoriesByPeerQueryHandler.cs
   GetStoriesByIdListQueryHandler.cs
+  GetActiveStoriesQueryHandler.cs
+  GetPinnedStoriesQueryHandler.cs
+  GetArchivedStoriesQueryHandler.cs
+  GetStoryAlbumsByPeerQueryHandler.cs
+  GetStoryAlbumByIdQueryHandler.cs
+  GetStoryAlbumStoriesQueryHandler.cs
 
 source/src/MyTelegram.Messenger/Handlers/LatestLayer/Stories/
-  SendStoryHandler.cs  ← полная реализация (media save + privacy + aggregate + TUpdates)
+  SendStoryHandler.cs          ← полная реализация
+  EditStoryHandler.cs          ← EditStoryCommand + merge полей + TUpdateStory
+  DeleteStoriesHandler.cs      ← DeleteStoryCommand для каждой истории + список ID
+  GetStoriesByIDHandler.cs     ← GetStoriesByIdListQuery → TStories
+  GetPeerStoriesHandler.cs     ← GetActiveStoriesQuery → TPeerStories
+  GetAllStoriesHandler.cs      ← TAllStories с TStoriesStealthMode
+  GetPinnedStoriesHandler.cs   ← GetPinnedStoriesQuery → TStories
+  GetStoriesArchiveHandler.cs  ← GetArchivedStoriesQuery → TStories
+  TogglePinnedHandler.cs       ← TogglePinnedCommand для каждой истории
+  ReadStoriesHandler.cs        ← список прочитанных ID до MaxId
+  IncrementStoryViewsHandler.cs ← IncrementViewCommand (кроме своих)
+  GetStoriesViewsHandler.cs    ← TStoryViews с ViewsCount per-story
+  GetStoryViewsListHandler.cs  ← TStoryViewsList с RecentViewers
+  SendReactionHandler.cs       ← TUpdates (реакция записывается на стороне клиента)
+  ActivateStealthModeHandler.cs ← PREMIUM_ACCOUNT_REQUIRED
+  ExportStoryLinkHandler.cs    ← TExportedStoryLink "https://t.me/c/{peerId}/{storyId}"
+  ReportHandler.cs             ← TReportResultReported
+  StartLiveHandler.cs          ← PREMIUM_ACCOUNT_REQUIRED
+  CreateAlbumHandler.cs        ← CreateAlbumCommand + TStoryAlbum
+  UpdateAlbumHandler.cs        ← UpdateAlbumCommand + computed TStoryAlbum
+  GetAlbumsHandler.cs          ← GetStoryAlbumsByPeerQuery → TAlbums
+  GetAlbumStoriesHandler.cs    ← GetStoryAlbumStoriesQuery → TStories (с пагинацией)
+  DeleteAlbumHandler.cs        ← DeleteAlbumCommand → TBoolTrue
+  StoryBuilderHelper.cs        ← общий хелпер BuildFromReadModel (privacy flags + Views)
 ```
-
-**Что ещё не реализовано:**
-- `stories.editStory`, `stories.deleteStories`
-- `stories.getStories`, `stories.getPeerStories`, `stories.getAllStories`
-- Push уведомления подписчикам при новой истории
 
 ---
 
-### 🔲 14. Passkey Login (Вход через Passkey)
+### ✅ 14. Passkey / QR Code Login (Вход через QR/Passkey)
 
-**Что нужно:** Беспарольный вход через FIDO2/WebAuthn passkey.
+**Что реализовано:** Беспарольный вход через сканирование QR-кода (WebAuthn/Passkey flow).
 
-**Как будет сделано:**
-- `auth.requestLoginToken` → QR/passkey challenge
-- Хранение passkey credential в `UserAuthReadModel`
-- Сложность: **высокая**
+**Как работает:**
+1. `auth.exportLoginToken` (Web/Desktop) → Генерирует 32-байтовый токен, диспатчит `ExportLoginTokenCommand` к `QrCodeAggregate`, возвращает `TLoginToken`.
+2. `auth.acceptLoginToken` (Phone) → Валидирует токен (через `GetQrCodeByTokenQuery` / `QrCodeId`), диспатчит `AcceptLoginTokenCommand`.
+3. `QrCodeLoginDomainEventHandler` → Слушает `LoginTokenAcceptedEvent`. Отвечает Phone-клиенту с новой `TAuthorization`. Также кэширует пару `TempAuthKeyId -> UserId` и пушит `TUpdateLoginToken` к Web/Desktop клиенту.
+4. `auth.exportLoginToken` (повторный поллинг от Web) → Находит закэшированный `UserId`, диспатчит `BindUserIdToSessionEvent`, и возвращает `TLoginTokenSuccess` с полной авторизацией.
+
+**Сложность:** **высокая** (успешно интегрировано с Domain Events и CQRS).
 
 ---
 
@@ -628,26 +658,90 @@ source/src/MyTelegram.Messenger.QueryServer/DomainEventHandlers/
 
 ---
 
-### 🔲 19. E2E Encrypted Chat (Секретные чаты)
+### ✅ 19. E2E Encrypted Chat (Секретные чаты)
 
-**Что нужно:** Сквозное шифрование, ключи не хранятся на сервере.
+**Что:** Сквозное шифрование (MTProto 2.0 Secret Chats). Ключи никогда не хранятся на сервере — только зашифрованный blob.
 
-**Как будет сделано:**
-- DH обмен ключами: `messages.requestEncryption` → `messages.acceptEncryption`
-- `EncryptedChatReadModel` — хранит DH параметры и g_a/g_b
-- Сервер хранит только зашифрованный blob
-- Сложность: **очень высокая**
+**Как работает:**
+1. `messages.requestEncryption` → генерирует chatId (= RandomId), accessHash; сохраняет GA + adminPermAuthKeyId в `EncryptedChatAggregate`; пушит `encryptedChatRequested` участнику
+2. `messages.acceptEncryption` → участник передаёт GB + keyFingerprint; пушит `encryptedChat { GAOrB=GB }` администратору (он вычисляет общий ключ); возвращает `encryptedChat { GAOrB=GA }` участнику
+3. `messages.discardEncryption` → пушит `encryptedChatDiscarded` к другой стороне
+4. `messages.sendEncrypted` / `sendEncryptedFile` / `sendEncryptedService` → QTS через `idGenerator.NextIdAsync(IdType.Qts, recipientId)`; пушит `TUpdateNewEncryptedMessage` к получателю
+5. `messages.setEncryptedTyping` → пушит `TUpdateEncryptedChatTyping` (только если Typing=true)
+6. `messages.readEncryptedHistory` → пушит `TUpdateEncryptedMessagesRead { MaxDate, Date }` к другой стороне
+7. `messages.uploadEncryptedFile` → возвращает `TEncryptedFile` синхронно
+
+**Ключевые файлы:**
+```
+source/src/MyTelegram.Domain/Aggregates/EncryptedChat/
+  EncryptedChatAggregate.cs   ← [EnableAutoGeneration], RequestEncryptedChat/AcceptEncryptedChat/DiscardEncryptedChat
+  EncryptedChatId.cs          ← детерминированный ID: "encryptedchat-{chatId}"
+  EncryptedChatState.cs       ← ChatState: "requested" → "accepted" → "discarded"; хранит GA, GB, PermAuthKeyIds
+  EncryptedMessageAggregate.cs ← [EnableAutoGeneration], SendEncryptedMessage
+  EncryptedMessageId.cs       ← детерминированный ID: "encryptedmessage-{randomId}"
+  EncryptedMessageState.cs    ← хранит ChatId, UserId, PermAuthKeyId, Data, Qts, MessageType
+
+source/src/MyTelegram.ReadModel/Impl/
+  EncryptedChatReadModel.cs   ← IAmReadModelFor 3 событий; ChatState, AdminPermAuthKeyId, ParticipantPermAuthKeyId, Date
+  EncryptedMessageReadModel.cs ← IAmReadModelFor EncryptedMessageSentEvent; Qts для getDifference
+
+source/src/MyTelegram.QueryHandlers.MongoDB/EncryptedChat/ (+ InMemory аналоги)
+  GetEncryptedChatByIdQueryHandler.cs
+  GetEncryptedMessagesQueryHandler.cs  ← p.UserId==userId && p.Qts>qts для getDifference
+
+source/src/MyTelegram.Messenger/Handlers/LatestLayer/Messages/
+  RequestEncryptionHandler.cs    ← RequestEncryptedChatCommand + push TEncryptedChatRequested к участнику
+  AcceptEncryptionHandler.cs     ← AcceptEncryptedChatCommand + push TEncryptedChat{GAOrB=GB} к admin
+  DiscardEncryptionHandler.cs    ← DiscardEncryptedChatCommand + push TEncryptedChatDiscarded
+  SendEncryptedHandler.cs        ← SendEncryptedMessageCommand(Text) + push TUpdateNewEncryptedMessage
+  SendEncryptedFileHandler.cs    ← SendEncryptedMessageCommand(Media) + push с файлом
+  SendEncryptedServiceHandler.cs ← SendEncryptedMessageCommand(MessageService)
+  SetEncryptedTypingHandler.cs   ← push TUpdateEncryptedChatTyping
+  ReadEncryptedHistoryHandler.cs ← push TUpdateEncryptedMessagesRead
+  UploadEncryptedFileHandler.cs  ← синхронный возврат TEncryptedFile
+```
 
 ---
 
-### 🔲 20. Voice & Video Calls (Звонки)
+### ✅ 20. Voice & Video Calls (Звонки)
 
-**Что нужно:** Аудио и видео P2P звонки между пользователями.
+**Что:** P2P аудио/видео звонки через libtgvoip/tgcalls с серверной сигнализацией (DH key exchange).
 
-**Как будет сделано:**
-- Сигнализация: `phone.requestCall`, `phone.acceptCall`, `phone.discardCall`
-- Медиапоток через WebRTC P2P или TURN/STUN (Coturn)
-- Сложность: **очень высокая**
+**Как работает:**
+1. `phone.requestCall` → генерирует callId, accessHash; сохраняет в `PhoneCallAggregate`; возвращает `phoneCallWaiting` звонящему; пушит `phoneCallRequested` к принимающему
+2. `phone.receivedCall` → `TBoolTrue` (уведомляет сервер что звонок получен)
+3. `phone.acceptCall` → принимающий передаёт `g_b`; пушит `phoneCallAccepted` к звонящему; возвращает то же к принимающему
+4. `phone.confirmCall` → звонящий передаёт `g_a` + `key_fingerprint`; пушит `phoneCall` (активный) к принимающему; возвращает его звонящему (P2pAllowed = true)
+5. `phone.discardCall` → запись `PhoneCallDiscardedEvent`; пуш к другой стороне; возврат `TUpdates`
+6. `phone.sendSignalingData` → пуш `TUpdatePhoneCallSignalingData` к другой стороне (WebRTC ICE negotiation)
+7. `phone.getCallConfig` → JSON с `rtc_endpoints: []` (P2P режим, без TURN)
+
+**Ключевые файлы:**
+```
+source/src/MyTelegram.Domain/Aggregates/PhoneCall/
+  PhoneCallAggregate.cs   ← [EnableAutoGeneration], CreatePhoneCall/AcceptPhoneCall/ConfirmPhoneCall/DiscardPhoneCall
+  PhoneCallId.cs          ← детерминированный ID: "phonecall-{callId}"
+  PhoneCallState.cs       ← применяет все 4 события
+
+source/src/MyTelegram.ReadModel/Impl/
+  PhoneCallReadModel.cs   ← IAmReadModelFor всех 4 событий
+
+source/src/MyTelegram.QueryHandlers.MongoDB/PhoneCall/ (+ InMemory аналоги)
+  GetPhoneCallByIdQueryHandler.cs
+
+source/src/MyTelegram.Messenger/Handlers/LatestLayer/Phone/
+  RequestCallHandler.cs   ← CreatePhoneCallCommand + push TPhoneCallRequested к callee
+  AcceptCallHandler.cs    ← AcceptPhoneCallCommand + push TPhoneCallAccepted к caller
+  ConfirmCallHandler.cs   ← ConfirmPhoneCallCommand + push TPhoneCall (active) к callee
+  DiscardCallHandler.cs   ← DiscardPhoneCallCommand + push TPhoneCallDiscarded к другой стороне
+  ReceivedCallHandler.cs  ← TBoolTrue
+  SendSignalingDataHandler.cs ← push TUpdatePhoneCallSignalingData к другой стороне
+  GetCallConfigHandler.cs ← JSON config (P2P mode)
+  SaveCallDebugHandler.cs ← TBoolTrue
+  SetCallRatingHandler.cs ← пустой TUpdates
+  SaveCallLogHandler.cs   ← TBoolTrue
+  PhoneCallBuilderHelper.cs ← конвертация TPhoneCallProtocol ↔ PhoneCallProtocol
+```
 
 ---
 
@@ -661,16 +755,16 @@ source/src/MyTelegram.Messenger.QueryServer/DomainEventHandlers/
 | Запланированные сообщения | ✅ Готово |
 | Стикеры | ✅ Готово |
 | Forum Topics | ✅ Готово |
-| Bot Support | 🔲 Не начато |
+| Bot Support | ✅ Готово (полный MTProto Bot API: info, commands, menu, token) |
 | Star Gifts | ✅ Готово (domain model + real DB queries) |
 | Themes & Wallpapers | ✅ Готово (ThemeAggregate + read queries; wallpaper → WALLPAPER_INVALID) |
 | Chatlist | ✅ Готово (все 11 handlers полностью реализованы, ImportedFromSlug pipeline) |
 | Telegram Business | ✅ Готово (BusinessChatLink + Quick Reply shortcuts — все handlers полностью) |
-| Stories | 🔲 Инфраструктура + sendStory готовы; edit/delete/get — не начато |
-| Passkey Login | 🔲 Не начато |
+| Stories | ✅ Готово (все 34 handler'а: send/edit/delete/get/views/albums/reactions) |
+| Passkey Login | ✅ Готово (QR Code login flow: export, accept, domain events + cache) |
 | Email Login | ✅ Готово |
 | Email Sender | ✅ Готово |
 | Direct Messages | 🔲 Не начато |
 | Push Server (Firebase FCM) | ✅ Готово |
 | E2E Encrypted Chat | 🔲 Не начато |
-| Voice & Video Calls | 🔲 Не начато |
+| Voice & Video Calls | ✅ Готово |

@@ -10,6 +10,8 @@ internal sealed class GetSplitRangesHandler : RpcResultObjectHandler<MyTelegram.
 {
     protected override Task<TVector<MyTelegram.Schema.IMessageRange>> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetSplitRanges obj)
     {
-        throw new NotImplementedException();
+        // This is an optional client-side optimization hint (splits history into contiguous ranges to fetch/save).
+        // Returning an empty vector is a legitimate answer - it just means "no known split ranges".
+        return Task.FromResult(new TVector<MyTelegram.Schema.IMessageRange>());
     }
 }

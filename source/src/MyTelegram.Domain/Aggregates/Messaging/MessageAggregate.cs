@@ -415,6 +415,22 @@ public class MessageAggregate : SnapshotAggregateRoot<MessageAggregate, MessageI
         Emit(new MessageReactionSentEvent(requestInfo, ownerPeerId, messageId, senderPeer, reactions, toPeer, big, addToRecent, previousReactions));
     }
 
+    /// <summary>
+    ///     Create/edit or delete (when both <paramref name="factCheckCountry"/> and <paramref name="factCheckText"/> are
+    ///     null) the <a href="https://corefork.telegram.org/api/factcheck">fact-check</a> attached to this message.
+    /// </summary>
+    public void SetFactCheck(
+        RequestInfo requestInfo,
+        long ownerPeerId,
+        int messageId,
+        string? factCheckCountry,
+        ITextWithEntities? factCheckText,
+        long factCheckHash)
+    {
+        Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
+        Emit(new MessageFactCheckSetEvent(requestInfo, ownerPeerId, messageId, factCheckCountry, factCheckText, factCheckHash));
+    }
+
     public void SetAutoDeleteTimer(
         RequestInfo requestInfo,
         long ownerPeerId,

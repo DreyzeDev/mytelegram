@@ -34,7 +34,6 @@ internal sealed class EditExportedInviteHandler(ICommandBus commandBus, IQueryPr
 
         var command = new EditInviteCommand(
             ChatlistInviteId.Create(input.UserId, obj.Slug),
-            input.ToRequestInfo(),
             newTitle,
             newPeersJson);
         await commandBus.PublishAsync(command, default);

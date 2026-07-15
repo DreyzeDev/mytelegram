@@ -13,6 +13,6 @@ internal sealed class GetConnectedStarRefBotHandler : RpcResultObjectHandler<MyT
 {
     protected override Task<MyTelegram.Schema.Payments.IConnectedStarRefBots> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Payments.RequestGetConnectedStarRefBot obj)
     {
-        return Task.FromResult<MyTelegram.Schema.Payments.IConnectedStarRefBots>(new MyTelegram.Schema.Payments.TConnectedStarRefBots { Count = 0, Bots = [], Users = [], Chats = [] });
+        return Task.FromResult<MyTelegram.Schema.Payments.IConnectedStarRefBots>(new MyTelegram.Schema.Payments.TConnectedStarRefBots { Count = 0, ConnectedBots = [], Users = [] });
     }
 }

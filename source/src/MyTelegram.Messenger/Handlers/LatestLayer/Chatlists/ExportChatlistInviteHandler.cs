@@ -35,7 +35,6 @@ internal sealed class ExportChatlistInviteHandler(ICommandBus commandBus, IQuery
 
         var command = new CreateInviteCommand(
             ChatlistInviteId.Create(input.UserId, slug),
-            input.ToRequestInfo(),
             input.UserId,
             filterId,
             slug,

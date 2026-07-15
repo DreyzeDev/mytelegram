@@ -9,10 +9,28 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class SetEncryptedTypingHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestSetEncryptedTyping, IBool>
+internal sealed class SetEncryptedTypingHandler(IQueryProcessor queryProcessor, IObjectMessageSender messageSender)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestSetEncryptedTyping, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestSetEncryptedTyping obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestSetEncryptedTyping obj)
     {
-        throw new NotImplementedException();
+        var peer = obj.Peer as TInputEncryptedChat;
+        if (peer is null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+
+        var chat = await queryProcessor.ProcessAsync(new GetEncryptedChatByIdQuery(peer!.ChatId), default);
+        if (chat == null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+
+        if (obj.Typing)
+        {
+            var otherUserId = input.UserId == chat!.AdminId ? chat.ParticipantId : chat.AdminId;
+            await messageSender.PushMessageToPeerAsync(
+                new Peer(PeerType.User, otherUserId),
+                new TUpdateShort { Date = CurrentDate, Update = new TUpdateEncryptedChatTyping { ChatId = peer!.ChatId } },
+                excludeAuthKeyId: null);
+        }
+
+        return new TBoolTrue();
     }
 }

@@ -1,4 +1,4 @@
-﻿using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MyTelegram.Domain.Aggregates.Language;
 using MyTelegram.Domain.Aggregates.PeerNotifySetting;
@@ -11,6 +11,10 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MyTelegram.EventFlow.MongoDB.Extensions;
 using MyTelegram.ReadModel.Extensions;
+using MyTelegram.Domain.Aggregates.Story;
+using MyTelegram.Domain.Aggregates.PhoneCall;
+using MyTelegram.Domain.Aggregates.Bot;
+using MyTelegram.Domain.Aggregates.EncryptedChat;
 
 namespace MyTelegram.ReadModel.MongoDB;
 
@@ -90,7 +94,8 @@ public static class MyTelegramServerReadModelMongoDbExtensions
             .UseMongoDbReadModel<PeerNotifySettingsAggregate, PeerNotifySettingsId, PeerNotifySettingsReadModel>()
             //.UseMongoDbReadModel<PtsReadModel, IPtsReadModelLocator>()
             .UseMongoDbReadModel<UserReadModel, IUserReadModelLocator>()
-            //.UseMongoDbReadModel<BotAggregate, BotId, BotReadModel>()
+            .UseMongoDbReadModel<BotAggregate, BotId, BotReadModel>()
+            .UseMongoDbReadModel<BotAggregate, BotId, BotMenuReadModel>()
             .UseMongoDbReadModel<ChannelReadModel, IChannelReadModelLocator>()
             .UseMongoDbReadModel<ChannelFullReadModel, IChannelFullReadModelLocator>()
             .UseMongoDbReadModel<ChannelMemberAggregate, ChannelMemberId, ChannelMemberReadModel>()
@@ -131,6 +136,10 @@ public static class MyTelegramServerReadModelMongoDbExtensions
             .UseMongoDbReadModel<ChatlistInviteAggregate, ChatlistInviteId, ChatlistInviteReadModel>()
             .UseMongoDbReadModel<QuickReplyShortcutAggregate, QuickReplyShortcutId, QuickReplyShortcutReadModel>()
             .UseMongoDbReadModel<StoryAggregate, StoryId, StoryReadModel>()
+            .UseMongoDbReadModel<StoryAlbumAggregate, StoryAlbumId, StoryAlbumReadModel>()
+            .UseMongoDbReadModel<PhoneCallAggregate, PhoneCallId, PhoneCallReadModel>()
+            .UseMongoDbReadModel<EncryptedChatAggregate, EncryptedChatId, EncryptedChatReadModel>()
+            .UseMongoDbReadModel<EncryptedMessageAggregate, EncryptedMessageId, EncryptedMessageReadModel>()
 
             ;
     }

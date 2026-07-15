@@ -1,4 +1,4 @@
-﻿namespace MyTelegram.Messenger.QueryServer.DomainEventHandlers;
+namespace MyTelegram.Messenger.QueryServer.DomainEventHandlers;
 
 public class QrCodeLoginDomainEventHandler(
     IObjectMessageSender objectMessageSender,
@@ -7,6 +7,7 @@ public class QrCodeLoginDomainEventHandler(
     IAckCacheService ackCacheService,
     IQueryProcessor queryProcessor,
     ILayeredService<IAuthorizationConverter> authorizationLayeredService,
+    ICacheHelper<long, long> cacheHelper,
     ILogger<QrCodeLoginDomainEventHandler> logger)
     : DomainEventHandlerBase(objectMessageSender,
             commandBus,
@@ -42,6 +43,8 @@ public class QrCodeLoginDomainEventHandler(
 
         var updateShortForLoginWithTokenRequestOwner =
             new TUpdateShort { Date = DateTime.UtcNow.ToTimestamp(), Update = new TUpdateLoginToken() };
+
+        cacheHelper.TryAdd(domainEvent.AggregateEvent.QrCodeLoginRequestTempAuthKeyId, domainEvent.AggregateEvent.UserId);
 
         await _objectMessageSender
             .PushSessionMessageToAuthKeyIdAsync(domainEvent.AggregateEvent.QrCodeLoginRequestTempAuthKeyId,

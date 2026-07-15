@@ -1,3 +1,5 @@
+using MyTelegram.Domain.Aggregates.PeerSetting;
+
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <summary>
 /// Show or hide the <a href="https://corefork.telegram.org/api/translation">real-time chat translation popup</a> for a certain chat
@@ -9,11 +11,14 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class TogglePeerTranslationsHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestTogglePeerTranslations, IBool>
+internal sealed class TogglePeerTranslationsHandler(IPeerHelper peerHelper, ICommandBus commandBus) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestTogglePeerTranslations, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestTogglePeerTranslations obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestTogglePeerTranslations obj)
     {
-        return Task.FromResult<IBool>(new TBoolTrue());
-    //throw new NotImplementedException();
+        var peer = peerHelper.GetPeer(obj.Peer, input.UserId);
+        var command = new TogglePeerTranslationsCommand(PeerSettingsId.Create(input.UserId, peer.PeerId), input.ToRequestInfo(), peer.PeerId, obj.Disabled);
+        await commandBus.PublishAsync(command);
+
+        return new TBoolTrue();
     }
 }

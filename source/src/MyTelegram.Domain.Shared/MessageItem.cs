@@ -56,7 +56,11 @@ public record MessageItem
     List<string>? Hashtags = null,
     List<long>? MentionedUserIds = null,
     ReadOnlyMemory<byte>? EncryptedData = null,
-    ReadOnlyMemory<byte>? InboxMessageEncryptedData = null
+    ReadOnlyMemory<byte>? InboxMessageEncryptedData = null,
+    // https://corefork.telegram.org/api/factcheck
+    string? FactCheckCountry = null,
+    ITextWithEntities? FactCheckText = null,
+    long FactCheckHash = 0
 //int? DefaultHistoryTtl = null,
 //int? Ttl = null
 );

@@ -11,10 +11,30 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class ReadEncryptedHistoryHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestReadEncryptedHistory, IBool>
+internal sealed class ReadEncryptedHistoryHandler(IQueryProcessor queryProcessor, IObjectMessageSender messageSender)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestReadEncryptedHistory, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestReadEncryptedHistory obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestReadEncryptedHistory obj)
     {
-        throw new NotImplementedException();
+        var peer = obj.Peer as TInputEncryptedChat;
+        if (peer is null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+
+        var chat = await queryProcessor.ProcessAsync(new GetEncryptedChatByIdQuery(peer!.ChatId), default);
+        if (chat == null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+
+        var date = CurrentDate;
+        var otherUserId = input.UserId == chat!.AdminId ? chat.ParticipantId : chat.AdminId;
+        await messageSender.PushMessageToPeerAsync(
+            new Peer(PeerType.User, otherUserId),
+            new TUpdateShort
+            {
+                Date = date,
+                Update = new TUpdateEncryptedMessagesRead { ChatId = peer!.ChatId, MaxDate = obj.MaxDate, Date = date }
+            },
+            excludeAuthKeyId: null);
+
+        return new TBoolTrue();
     }
 }

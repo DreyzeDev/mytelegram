@@ -1,4 +1,4 @@
-﻿namespace MyTelegram.ReadModel.Interfaces;
+namespace MyTelegram.ReadModel.Interfaces;
 
 public interface IStoryReadModel : IReadModel
 {
@@ -19,4 +19,6 @@ public interface IStoryReadModel : IReadModel
     Peer? FwdFromId { get; }
     int? FwdFromStory { get; }
     bool Archived { get; }
+    int ViewsCount { get; }
+    List<long>? RecentViewers { get; }
 }

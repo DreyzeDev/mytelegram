@@ -2,7 +2,10 @@ namespace MyTelegram.ReadModel.Impl;
 
 public class StoryReadModel : ReadModelBase, IStoryReadModel,
     IAmReadModelFor<StoryAggregate, StoryId, StoryCreatedEvent>,
-    IAmReadModelFor<StoryAggregate, StoryId, StoryDeletedEvent>
+    IAmReadModelFor<StoryAggregate, StoryId, StoryDeletedEvent>,
+    IAmReadModelFor<StoryAggregate, StoryId, StoryEditedEvent>,
+    IAmReadModelFor<StoryAggregate, StoryId, StoryPinnedToggledEvent>,
+    IAmReadModelFor<StoryAggregate, StoryId, StoryViewIncrementedEvent>
 {
     public long OwnerPeerId { get; private set; }
     public int StoryId { get; private set; }
@@ -21,6 +24,8 @@ public class StoryReadModel : ReadModelBase, IStoryReadModel,
     public Peer? FwdFromId { get; private set; }
     public int? FwdFromStory { get; private set; }
     public bool Archived { get; private set; }
+    public int ViewsCount { get; private set; }
+    public List<long>? RecentViewers { get; private set; }
     public virtual string Id { get; private set; } = null!;
     public virtual long? Version { get; set; }
 
@@ -54,6 +59,43 @@ public class StoryReadModel : ReadModelBase, IStoryReadModel,
         CancellationToken cancellationToken)
     {
         context.MarkForDeletion();
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context,
+        IDomainEvent<StoryAggregate, StoryId, StoryEditedEvent> domainEvent,
+        CancellationToken cancellationToken)
+    {
+        var item = domainEvent.AggregateEvent.StoryItem;
+        Media = item.Media;
+        Caption = item.Caption;
+        MediaAreas = item.MediaAreas;
+        PrivacyRules = item.PrivacyRules;
+        Entities = item.Entities;
+        Pinned = item.Pinned;
+        NoForwards = item.NoForwards;
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context,
+        IDomainEvent<StoryAggregate, StoryId, StoryPinnedToggledEvent> domainEvent,
+        CancellationToken cancellationToken)
+    {
+        Pinned = domainEvent.AggregateEvent.Pinned;
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context,
+        IDomainEvent<StoryAggregate, StoryId, StoryViewIncrementedEvent> domainEvent,
+        CancellationToken cancellationToken)
+    {
+        ViewsCount++;
+        RecentViewers ??= [];
+        var viewerUserId = domainEvent.AggregateEvent.ViewerUserId;
+        if (!RecentViewers.Contains(viewerUserId))
+            RecentViewers.Add(viewerUserId);
+        if (RecentViewers.Count > 20)
+            RecentViewers.RemoveAt(0);
         return Task.CompletedTask;
     }
 }

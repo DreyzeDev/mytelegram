@@ -144,13 +144,14 @@ public class SendMessageSaga : MyInMemoryAggregateSaga<SendMessageSaga, SendMess
         if (mentionedUserIds?.Count > 0)
         {
             // Only create mention for super group members
-
-            //foreach (var mentionedUserId in mentionedUserIds)
-            //{
-            //    var command = new CreateMentionCommand(DialogId.Create(mentionedUserId, _state.FirstMessageItem.MessageItem.ToPeer),
-            //        mentionedUserId, /*_state.MessageItem.ToPeer.PeerId,*/ messageId);
-            //    Publish(command);
-            //}
+            // DialogAggregate.CreateMention(int messageId) only takes messageId (no RequestInfo param),
+            // so the generated command is CreateMentionCommand(DialogId aggregateId, int messageId).
+            foreach (var mentionedUserId in mentionedUserIds)
+            {
+                var command = new CreateMentionCommand(DialogId.Create(mentionedUserId, _state.FirstMessageItem.MessageItem.ToPeer),
+                    messageId);
+                Publish(command);
+            }
         }
     }
 

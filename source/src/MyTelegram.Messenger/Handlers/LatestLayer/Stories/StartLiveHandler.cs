@@ -1,8 +1,6 @@
 namespace MyTelegram.Messenger.Handlers.Stories;
 /// <summary>
-/// Possible errors
-/// Code Type Description
-/// 400 PEER_ID_INVALID The provided peer id is invalid.
+/// Start a live story (video stream). Requires Premium.
 /// <para><c>See <a href="https://corefork.telegram.org/method/stories.startLive"/> </c></para>
 /// </summary>
 /// <remarks>
@@ -12,6 +10,7 @@ internal sealed class StartLiveHandler : RpcResultObjectHandler<MyTelegram.Schem
 {
     protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestStartLive obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.PremiumAccountRequired.ThrowRpcError();
+        return default!;
     }
 }

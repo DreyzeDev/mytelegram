@@ -23,6 +23,8 @@ public class StickerSetReadModel : ReadModelBase, IStickerSetReadModel,
     public List<StickerKeywordItem> Keywords { get; private set; } = [];
     public List<long> StickerDocumentIds { get; private set; } = [];
     public List<long> Covers { get; private set; } = [];
+    public long CreatorUserId { get; private set; }
+    public bool Featured { get; private set; }
 
     public Task ApplyAsync(IReadModelContext context,
         IDomainEvent<StickerSetAggregate, StickerSetId, StickerSetCreatedEvent> domainEvent,
@@ -47,6 +49,8 @@ public class StickerSetReadModel : ReadModelBase, IStickerSetReadModel,
         Thumbs = e.Thumbs;
         ThumbVersion = e.ThumbVersion;
         ThumbDocumentId = e.ThumbDocumentId;
+        CreatorUserId = e.CreatorUserId;
+        Featured = e.Featured;
         return Task.CompletedTask;
     }
 }

@@ -1,4 +1,4 @@
-﻿global using EventFlow;
+global using EventFlow;
 global using EventFlow.Extensions;
 global using EventFlow.MongoDB.EventStore;
 //global using EventFlow.MongoDB.Extensions;
@@ -9,7 +9,7 @@ global using MongoDB.Driver;
 global using MyTelegram.ReadModel.ReadModelLocators;
 global using System.Linq.Expressions;
 global using MyTelegram.Domain.Aggregates.AppCode;
-//global using MyTelegram.Domain.Aggregates.Bot;
+global using MyTelegram.Domain.Aggregates.Bot;
 global using MyTelegram.Domain.Aggregates.Channel;
 global using MyTelegram.Domain.Aggregates.ChatInvite;
 global using MyTelegram.Domain.Aggregates.Contact;

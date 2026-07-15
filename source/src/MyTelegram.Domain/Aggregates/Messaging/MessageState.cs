@@ -31,7 +31,8 @@ public class MessageState : AggregateState<MessageAggregate, MessageId, MessageS
     IApply<OutboxMessageEditedEventV2>,
     IApply<InboxMessageEditedEventV2>,
     IApply<MessageReactionSentEvent>,
-    IApply<MessageAutoDeleteTimerSetEvent>
+    IApply<MessageAutoDeleteTimerSetEvent>,
+    IApply<MessageFactCheckSetEvent>
 {
     public int EditDate { get; private set; }
     //public bool EditHide { get; private set; }
@@ -248,5 +249,15 @@ public class MessageState : AggregateState<MessageAggregate, MessageId, MessageS
     public void Apply(MessageAutoDeleteTimerSetEvent aggregateEvent)
     {
         MessageItem = MessageItem with { TtlPeriod = aggregateEvent.TtlSeconds };
+    }
+
+    public void Apply(MessageFactCheckSetEvent aggregateEvent)
+    {
+        MessageItem = MessageItem with
+        {
+            FactCheckCountry = aggregateEvent.FactCheckCountry,
+            FactCheckText = aggregateEvent.FactCheckText,
+            FactCheckHash = aggregateEvent.FactCheckHash
+        };
     }
 }

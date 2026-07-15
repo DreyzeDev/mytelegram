@@ -31,17 +31,42 @@ internal sealed class AddChatUserHandler : RpcResultObjectHandler<MyTelegram.Sch
     private readonly IRandomHelper _randomHelper;
     private readonly IAccessHashHelper _accessHashHelper;
     private readonly IPrivacyAppService _privacyAppService;
-    public AddChatUserHandler(ICommandBus commandBus, IPeerHelper peerHelper, IRandomHelper randomHelper, IAccessHashHelper accessHashHelper, IPrivacyAppService privacyAppService)
+    private readonly IChannelAppService _channelAppService;
+    private readonly IChannelAdminRightsChecker _channelAdminRightsChecker;
+
+    public AddChatUserHandler(ICommandBus commandBus, IPeerHelper peerHelper, IRandomHelper randomHelper, IAccessHashHelper accessHashHelper, IPrivacyAppService privacyAppService, IChannelAppService channelAppService, IChannelAdminRightsChecker channelAdminRightsChecker)
     {
         _commandBus = commandBus;
         _peerHelper = peerHelper;
         _randomHelper = randomHelper;
         _accessHashHelper = accessHashHelper;
         _privacyAppService = privacyAppService;
+        _channelAppService = channelAppService;
+        _channelAdminRightsChecker = channelAdminRightsChecker;
     }
 
     protected override async Task<MyTelegram.Schema.Messages.IInvitedUsers> HandleCoreAsync(IRequestInput input, RequestAddChatUser obj)
     {
-        throw new NotImplementedException();
+        await _channelAdminRightsChecker.CheckAdminRightAsync(obj.ChatId, input.UserId, adminRights => adminRights.InviteUsers);
+        await _accessHashHelper.CheckAccessHashAsync(input, obj.UserId);
+        var channelReadModel = await _channelAppService.GetAsync(obj.ChatId);
+        channelReadModel.ThrowExceptionIfChannelDeleted();
+
+        var userIds = new List<long>();
+        var botUserIds = new List<long>();
+        if (obj.UserId is TInputUser inputUser)
+        {
+            userIds.Add(inputUser.UserId);
+        }
+
+        var inviterUserId = input.UserId;
+        if (channelReadModel!.Broadcast || channelReadModel.HasLink)
+        {
+            inviterUserId = MyTelegramConsts.GroupAnonymousBotUserId;
+        }
+
+        var command = new StartInviteToChannelCommand(TempId.New, input.ToRequestInfo(), obj.ChatId, channelReadModel.Broadcast, channelReadModel.HasLink, inviterUserId, channelReadModel.TopMessageId, channelReadModel.TopMessageId, userIds, botUserIds, ChatJoinType.InvitedByAdmin);
+        await _commandBus.PublishAsync(command);
+        return null !;
     }
 }

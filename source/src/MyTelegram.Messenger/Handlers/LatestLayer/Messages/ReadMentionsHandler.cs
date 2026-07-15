@@ -13,10 +13,44 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class ReadMentionsHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestReadMentions, MyTelegram.Schema.Messages.IAffectedHistory>
+internal sealed class ReadMentionsHandler(ICommandBus commandBus, IMessageAppService messageAppService, IPeerHelper peerHelper, IAccessHashHelper accessHashHelper, IPtsHelper ptsHelper) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestReadMentions, MyTelegram.Schema.Messages.IAffectedHistory>
 {
-    protected override Task<MyTelegram.Schema.Messages.IAffectedHistory> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestReadMentions obj)
+    protected override async Task<IAffectedHistory> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestReadMentions obj)
     {
-        throw new NotImplementedException();
+        await accessHashHelper.CheckAccessHashAsync(input, obj.Peer);
+        var userId = input.UserId;
+        var peer = peerHelper.GetPeer(obj.Peer, userId);
+        var ownerPeerId = peer.PeerType == PeerType.Channel ? peer.PeerId : userId;
+
+        // There's no dedicated per-message "unread mention" flag, so find messages in this peer that
+        // mention the current user and mark each one read against DialogAggregate's UnreadMentionsCount
+        // (the same aggregate/event pair used to compute messages.getUnreadMentions' backing count).
+        var r = await messageAppService.GetHistoryAsync(new GetHistoryInput
+        {
+            OwnerPeerId = ownerPeerId,
+            SelfUserId = userId,
+            Limit = 100,
+            Peer = peer
+        });
+
+        var mentionedMessageIds = r.MessageList
+            .Where(p => p.MentionedUserIds?.Contains(userId) ?? false)
+            .Select(p => p.MessageId)
+            .ToList();
+
+        var dialogId = DialogId.Create(userId, peer);
+        foreach (var messageId in mentionedMessageIds)
+        {
+            var command = new ReadMentionCommand(dialogId, messageId);
+            await commandBus.PublishAsync(command);
+        }
+
+        var cachedPts = ptsHelper.GetCachedPts(userId);
+        return new TAffectedHistory
+        {
+            Offset = 0,
+            Pts = cachedPts,
+            PtsCount = 0
+        };
     }
 }

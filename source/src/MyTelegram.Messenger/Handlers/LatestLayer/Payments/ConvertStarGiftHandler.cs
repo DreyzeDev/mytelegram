@@ -30,7 +30,6 @@ internal sealed class ConvertStarGiftHandler(ICommandBus commandBus, IQueryProce
 
         var command = new ConvertGiftCommand(
             UserStarGiftId.Create(ownerPeerId, msgId),
-            input.ToRequestInfo(),
             input.UserId);
 
         await commandBus.PublishAsync(command);

@@ -15,9 +15,16 @@ internal sealed class GetAdminsWithInvitesHandler(IQueryProcessor queryProcessor
 {
     protected override async Task<IChatAdminsWithInvites> HandleCoreAsync(IRequestInput input, RequestGetAdminsWithInvites obj)
     {
-        if (obj.Peer is TInputPeerChannel inputPeerChannel)
+        long? channelIdFromPeer = obj.Peer switch
         {
-            var adminWithInvitesList = await queryProcessor.ProcessAsync(new GetAdminInvitesQuery(inputPeerChannel.ChannelId));
+            TInputPeerChannel inputPeerChannel => inputPeerChannel.ChannelId,
+            TInputPeerChat inputPeerChat => inputPeerChat.ChatId,
+            _ => null
+        };
+
+        if (channelIdFromPeer is { } channelId)
+        {
+            var adminWithInvitesList = await queryProcessor.ProcessAsync(new GetAdminInvitesQuery(channelId));
             var userIds = adminWithInvitesList.Select(p => p.AdminId).ToList();
             var users = await userConverterService.GetUserListAsync(input, userIds, false, false, input.Layer);
             return new TChatAdminsWithInvites

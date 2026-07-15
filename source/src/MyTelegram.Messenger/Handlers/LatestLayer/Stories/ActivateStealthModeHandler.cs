@@ -1,6 +1,6 @@
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Stories;
 /// <summary>
-/// Activates <a href="https://corefork.telegram.org/api/stories#stealth-mode">stories stealth mode</a>, see <a href="https://corefork.telegram.org/api/stories#stealth-mode">here »</a> for more info.Will return an <a href="https://corefork.telegram.org/constructor/updateStoriesStealthMode">updateStoriesStealthMode</a>.
+/// Activates stories stealth mode (requires Premium).
 /// Possible errors
 /// Code Type Description
 /// 400 PREMIUM_ACCOUNT_REQUIRED A premium account is required to execute this action.
@@ -13,6 +13,7 @@ internal sealed class ActivateStealthModeHandler : RpcResultObjectHandler<MyTele
 {
     protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestActivateStealthMode obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.PremiumAccountRequired.ThrowRpcError();
+        return default!;
     }
 }

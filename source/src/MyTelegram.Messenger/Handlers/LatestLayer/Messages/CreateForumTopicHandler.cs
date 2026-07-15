@@ -16,7 +16,8 @@ internal sealed class CreateForumTopicHandler(ICommandBus commandBus, IIdGenerat
 {
     protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestCreateForumTopic obj)
     {
-        if (obj.Peer is not TInputPeerChannel inputPeerChannel)
+        var inputPeerChannel = obj.Peer as TInputPeerChannel;
+        if (inputPeerChannel is null)
             RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
 
         var channelId = inputPeerChannel!.ChannelId;
@@ -36,7 +37,7 @@ internal sealed class CreateForumTopicHandler(ICommandBus commandBus, IIdGenerat
                     Message = new TMessageService
                     {
                         Id = topicId,
-                        Peer = new TPeerChannel { ChannelId = channelId },
+                        PeerId = new TPeerChannel { ChannelId = channelId },
                         Date = date,
                         Action = new TMessageActionTopicCreate { Title = obj.Title }
                     },

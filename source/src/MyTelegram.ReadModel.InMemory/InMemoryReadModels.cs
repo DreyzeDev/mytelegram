@@ -1,4 +1,4 @@
-﻿namespace MyTelegram.ReadModel.InMemory;
+namespace MyTelegram.ReadModel.InMemory;
 
 public class AccessHashReadModel : Impl.AccessHashReadModel
 {
@@ -173,6 +173,14 @@ public class InstalledStickerSetReadModel : Impl.InstalledStickerSetReadModel
 {
 }
 
+public class FaveStickerReadModel : Impl.FaveStickerReadModel
+{
+}
+
+public class RecentStickerReadModel : Impl.RecentStickerReadModel
+{
+}
+
 public class ForumTopicReadModel : Impl.ForumTopicReadModel
 {
 }
@@ -204,3 +212,27 @@ public class QuickReplyShortcutReadModel : Impl.QuickReplyShortcutReadModel
 public class StoryReadModel : Impl.StoryReadModel
 {
 }
+
+public class StoryAlbumReadModel : Impl.StoryAlbumReadModel
+{
+}
+
+public class PhoneCallReadModel : Impl.PhoneCallReadModel
+{
+}
+
+public class EncryptedChatReadModel : Impl.EncryptedChatReadModel
+{
+}
+
+public class EncryptedMessageReadModel : Impl.EncryptedMessageReadModel
+{
+}
+
+public class BotReadModel : Impl.BotReadModel
+{
+}
+
+public class BotMenuReadModel : Impl.BotMenuReadModel
+{
+}

@@ -16,6 +16,7 @@ internal sealed class ImportLoginTokenHandler : RpcResultObjectHandler<MyTelegra
 {
     protected override Task<MyTelegram.Schema.Auth.ILoginToken> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Auth.RequestImportLoginToken obj)
     {
-        throw new NotImplementedException();
+        RpcErrors.RpcErrors400.AuthTokenInvalid.ThrowRpcError();
+        return Task.FromResult<MyTelegram.Schema.Auth.ILoginToken>(null!);
     }
 }

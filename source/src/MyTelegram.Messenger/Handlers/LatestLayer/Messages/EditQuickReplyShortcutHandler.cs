@@ -25,7 +25,6 @@ internal sealed class EditQuickReplyShortcutHandler(ICommandBus commandBus, IQue
 
         var command = new EditShortcutCommand(
             QuickReplyShortcutId.Create(input.UserId, obj.ShortcutId),
-            input.ToRequestInfo(),
             obj.Shortcut);
         await commandBus.PublishAsync(command, default);
         return new TBoolTrue();

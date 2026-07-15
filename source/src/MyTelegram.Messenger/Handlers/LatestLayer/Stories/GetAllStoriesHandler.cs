@@ -8,10 +8,40 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Stories;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetAllStoriesHandler : RpcResultObjectHandler<MyTelegram.Schema.Stories.RequestGetAllStories, MyTelegram.Schema.Stories.IAllStories>
+internal sealed class GetAllStoriesHandler(IQueryProcessor queryProcessor)
+    : RpcResultObjectHandler<MyTelegram.Schema.Stories.RequestGetAllStories, MyTelegram.Schema.Stories.IAllStories>
 {
-    protected override Task<MyTelegram.Schema.Stories.IAllStories> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestGetAllStories obj)
+    protected override async Task<MyTelegram.Schema.Stories.IAllStories> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestGetAllStories obj)
     {
-        return Task.FromResult<MyTelegram.Schema.Stories.IAllStories>(new TAllStories { Chats = [], PeerStories = [], Users = [], StealthMode = new TStoriesStealthMode { }, HasMore = false, State = "", });
+        var myStories = await queryProcessor.ProcessAsync(
+            new GetActiveStoriesQuery(input.UserId), default);
+
+        var peerStoriesList = new List<MyTelegram.Schema.IPeerStories>();
+
+        if (myStories.Count > 0)
+        {
+            var schemaStories = myStories
+                .OrderByDescending(s => s.StoryId)
+                .Select(s => (IStoryItem)StoryBuilderHelper.BuildFromReadModel(s, isOwner: true))
+                .ToList();
+
+            peerStoriesList.Add(new MyTelegram.Schema.TPeerStories
+            {
+                Peer = new TPeerUser { UserId = input.UserId },
+                Stories = new TVector<IStoryItem>(schemaStories),
+                MaxReadId = null
+            });
+        }
+
+        return new TAllStories
+        {
+            HasMore = false,
+            Count = peerStoriesList.Count,
+            State = string.Empty,
+            PeerStories = new TVector<MyTelegram.Schema.IPeerStories>(peerStoriesList),
+            Chats = [],
+            Users = [],
+            StealthMode = new TStoriesStealthMode()
+        };
     }
 }

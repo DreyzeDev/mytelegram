@@ -19,7 +19,6 @@ internal sealed class CreateBusinessChatLinkHandler(ICommandBus commandBus)
 
         var command = new CreateLinkCommand(
             BusinessChatLinkId.Create(input.UserId, slug),
-            input.ToRequestInfo(),
             input.UserId,
             slug,
             link.Message ?? string.Empty,

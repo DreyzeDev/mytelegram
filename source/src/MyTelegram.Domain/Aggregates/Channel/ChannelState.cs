@@ -29,7 +29,8 @@ public class ChannelState : AggregateState<ChannelAggregate, ChannelId, ChannelS
     IApply<ChannelTopMessageIdUpdatedEvent>,
     IApply<ChannelParticipantsHiddenUpdatedEvent>,
     IApply<ChannelJoinRequestUpdatedEvent>,
-    IApply<ChannelAdminRemovedEvent>
+    IApply<ChannelAdminRemovedEvent>,
+    IApply<ChannelCreatorTransferredEvent>
 {
     public Dictionary<long, ChatAdmin> ChatAdmins { get; private set; } = [];
     public static ChatBannedRights InitRights => ChatBannedRights.CreateDefaultBannedRights();
@@ -338,5 +339,25 @@ public class ChannelState : AggregateState<ChannelAggregate, ChannelId, ChannelS
     public void Apply(ChannelAdminRemovedEvent aggregateEvent)
     {
         ChatAdmins = aggregateEvent.AdminList.ToDictionary(k => k.UserId);
+    }
+
+    public void Apply(ChannelCreatorTransferredEvent aggregateEvent)
+    {
+        var oldCreatorId = aggregateEvent.OldCreatorId;
+        CreatorId = aggregateEvent.NewCreatorUserId;
+
+        if (ChatAdmins.TryGetValue(aggregateEvent.NewCreatorUserId, out var newCreatorAdmin))
+        {
+            newCreatorAdmin.SetAdminRights(ChatAdminRights.GetCreatorRights());
+        }
+        else
+        {
+            ChatAdmins[aggregateEvent.NewCreatorUserId] = new ChatAdmin(oldCreatorId, true, aggregateEvent.NewCreatorUserId, ChatAdminRights.GetCreatorRights(), string.Empty);
+        }
+
+        if (ChatAdmins.TryGetValue(oldCreatorId, out var oldCreatorAdmin))
+        {
+            oldCreatorAdmin.SetAdminRights(ChatAdminRights.GetCreatorRights());
+        }
     }
 }

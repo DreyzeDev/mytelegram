@@ -14,10 +14,34 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class DeleteChatUserHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestDeleteChatUser, MyTelegram.Schema.IUpdates>
+internal sealed class DeleteChatUserHandler(IPeerHelper peerHelper, ICommandBus commandBus, IChannelAdminRightsChecker channelAdminRightsChecker, IQueryProcessor queryProcessor) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestDeleteChatUser, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<IUpdates> HandleCoreAsync(IRequestInput input, RequestDeleteChatUser obj)
+    protected override async Task<IUpdates> HandleCoreAsync(IRequestInput input, RequestDeleteChatUser obj)
     {
-        throw new NotImplementedException();
+        var channelId = obj.ChatId;
+        var peer = peerHelper.GetPeer(obj.UserId, input.UserId);
+
+        if (peer.PeerId != input.UserId)
+        {
+            await channelAdminRightsChecker.CheckAdminRightAsync(channelId, input.UserId, p => p.BanUsers, RpcErrors.RpcErrors400.ChatAdminRequired);
+        }
+
+        var bannedRights = ChatBannedRights.CreateDefaultBannedRights();
+        bannedRights.ViewMessages = true;
+        var command = new EditBannedCommand(ChannelMemberId.Create(channelId, peer.PeerId), input.ToRequestInfo(), input.UserId, channelId, peer.PeerId, bannedRights);
+        await commandBus.PublishAsync(command);
+
+        if (obj.RevokeHistory)
+        {
+            var messageIds = (await queryProcessor.ProcessAsync(new GetMessageIdListByUserIdQuery(channelId, peer.PeerId, MyTelegramConsts.ClearHistoryDefaultPageSize))).ToList();
+            if (messageIds.Count > 0)
+            {
+                var newTopMessageId = await queryProcessor.ProcessAsync(new GetTopMessageIdQuery(channelId, channelId, messageIds));
+                var deleteHistoryCommand = new StartDeleteParticipantHistoryCommand(TempId.New, input.ToRequestInfo(), channelId, messageIds, newTopMessageId);
+                await commandBus.PublishAsync(deleteHistoryCommand);
+            }
+        }
+
+        return null !;
     }
 }

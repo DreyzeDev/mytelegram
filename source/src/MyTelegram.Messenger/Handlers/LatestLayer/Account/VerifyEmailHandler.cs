@@ -7,7 +7,8 @@ internal sealed class VerifyEmailHandler(
     protected override async Task<MyTelegram.Schema.Account.IEmailVerified> HandleCoreAsync(
         IRequestInput input, MyTelegram.Schema.Account.RequestVerifyEmail obj)
     {
-        if (obj.Verification is not TEmailVerificationCode codeObj)
+        var codeObj = obj.Verification as TEmailVerificationCode;
+        if (codeObj is null)
             RpcErrors.RpcErrors400.CodeInvalid.ThrowRpcError();
 
         var sessionKey = GetSessionKey(obj.Purpose);

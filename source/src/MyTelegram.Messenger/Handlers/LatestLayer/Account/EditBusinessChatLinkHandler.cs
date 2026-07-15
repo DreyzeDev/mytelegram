@@ -31,7 +31,6 @@ internal sealed class EditBusinessChatLinkHandler(ICommandBus commandBus, IQuery
 
         var command = new EditLinkCommand(
             BusinessChatLinkId.Create(input.UserId, obj.Slug),
-            input.ToRequestInfo(),
             link.Message ?? existing.Message,
             entitiesJson,
             link.Title);

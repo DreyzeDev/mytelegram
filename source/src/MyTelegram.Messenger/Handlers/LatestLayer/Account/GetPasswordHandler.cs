@@ -30,11 +30,11 @@ internal sealed class GetPasswordHandler(
 
         if (pwdModel is { HasPassword: true })
         {
-            var p = pwdModel.P;
-            var g = pwdModel.G;
+            var p = AuthConsts.Dh2048P;
+            var g = 3;
             var v = pwdModel.PasswordHash;
-            var salt1 = pwdModel.Salt1;
-            var salt2 = pwdModel.Salt2;
+            var salt1 = pwdModel.SrpData.Salt1;
+            var salt2 = pwdModel.SrpData.Salt2;
 
             var gBytes = new byte[256];
             var gBig = new BigInteger(g);

@@ -1,4 +1,4 @@
-﻿namespace MyTelegram.ReadModel.MongoDB;
+namespace MyTelegram.ReadModel.MongoDB;
 
 public class AppCodeReadModel : Impl.AppCodeReadModel, IMongoDbReadModel
 {
@@ -12,9 +12,13 @@ public class AppCodeReadModel : Impl.AppCodeReadModel, IMongoDbReadModel
 //{
 //}
 
-//public class BotReadModel : Impl.BotReadModel, IMongoDbReadModel
-//{
-//}
+public class BotReadModel : Impl.BotReadModel, IMongoDbReadModel
+{
+}
+
+public class BotMenuReadModel : Impl.BotMenuReadModel, IMongoDbReadModel
+{
+}
 
 //public class BotCallbackAnswerReadModel : Impl.BotCallbackAnswerReadModel, IMongoDbReadModel
 //{
@@ -57,13 +61,13 @@ public class DraftReadModel : Impl.DraftReadModel, IMongoDbReadModel
 {
 }
 
-//public class EncryptedChatReadModel : Impl.EncryptedChatReadModel, IMongoDbReadModel
-//{
-//}
+public class EncryptedChatReadModel : Impl.EncryptedChatReadModel, IMongoDbReadModel
+{
+}
 
-//public class EncryptedMessageReadModel : Impl.EncryptedMessageReadModel, IMongoDbReadModel
-//{
-//}
+public class EncryptedMessageReadModel : Impl.EncryptedMessageReadModel, IMongoDbReadModel
+{
+}
 
 //public class EncryptedPushUpdatesReadModel : Impl.EncryptedPushUpdatesReadModel, IMongoDbReadModel
 //{
@@ -237,6 +241,14 @@ public class InstalledStickerSetReadModel : Impl.InstalledStickerSetReadModel, I
 {
 }
 
+public class FaveStickerReadModel : Impl.FaveStickerReadModel, IMongoDbReadModel
+{
+}
+
+public class RecentStickerReadModel : Impl.RecentStickerReadModel, IMongoDbReadModel
+{
+}
+
 public class StarGiftReadModel : Impl.StarGiftReadModel, IMongoDbReadModel
 {
 }
@@ -258,5 +270,13 @@ public class QuickReplyShortcutReadModel : Impl.QuickReplyShortcutReadModel, IMo
 }
 
 public class StoryReadModel : Impl.StoryReadModel, IMongoDbReadModel
+{
+}
+
+public class StoryAlbumReadModel : Impl.StoryAlbumReadModel, IMongoDbReadModel
+{
+}
+
+public class PhoneCallReadModel : Impl.PhoneCallReadModel, IMongoDbReadModel
 {
 }

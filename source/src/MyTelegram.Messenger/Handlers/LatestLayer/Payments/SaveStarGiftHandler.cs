@@ -30,7 +30,6 @@ internal sealed class SaveStarGiftHandler(ICommandBus commandBus, IQueryProcesso
 
         var command = new SaveGiftCommand(
             UserStarGiftId.Create(ownerPeerId, msgId),
-            input.ToRequestInfo(),
             obj.Unsave);
 
         await commandBus.PublishAsync(command);

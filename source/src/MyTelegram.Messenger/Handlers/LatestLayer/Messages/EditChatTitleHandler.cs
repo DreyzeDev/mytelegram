@@ -13,10 +13,18 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✔] [Anonymous ✖]
 /// </remarks>
-internal sealed class EditChatTitleHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditChatTitle, MyTelegram.Schema.IUpdates>
+internal sealed class EditChatTitleHandler(ICommandBus commandBus, IRandomHelper randomHelper, IChannelAdminRightsChecker channelAdminRightsChecker) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditChatTitle, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<IUpdates> HandleCoreAsync(IRequestInput input, RequestEditChatTitle obj)
+    protected override async Task<IUpdates> HandleCoreAsync(IRequestInput input, RequestEditChatTitle obj)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(obj.Title))
+        {
+            RpcErrors.RpcErrors400.ChatTitleEmpty.ThrowRpcError();
+        }
+
+        await channelAdminRightsChecker.CheckAdminRightAsync(obj.ChatId, input.UserId, adminRights => adminRights.ChangeInfo);
+        var command = new EditChannelTitleCommand(ChannelId.Create(obj.ChatId), input.ToRequestInfo(), obj.Title, new TMessageActionChatEditTitle { Title = obj.Title }, randomHelper.NextInt64());
+        await commandBus.PublishAsync(command, CancellationToken.None);
+        return null !;
     }
 }

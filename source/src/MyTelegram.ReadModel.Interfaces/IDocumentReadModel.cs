@@ -15,6 +15,13 @@ public interface IDocumentReadModel : IReadModel
     string MimeType { get; }
     long Size { get; }
 
+    /// <summary>
+    /// SHA256 hash of the document's file content, used by messages.getDocumentByHash.
+    /// No existing hash field was found on this read model (Md5CheckSum is a different, weaker
+    /// legacy checksum used elsewhere), so this field was added specifically for that lookup.
+    /// </summary>
+    byte[]? Sha256Hash { get; }
+
     //byte[]? Stickers { get; }
     long? ThumbId { get; }
     List<PhotoSize>? Thumbs { get; }

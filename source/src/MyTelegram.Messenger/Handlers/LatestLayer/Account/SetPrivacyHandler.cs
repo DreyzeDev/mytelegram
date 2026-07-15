@@ -16,7 +16,7 @@ internal sealed class SetPrivacyHandler(IPrivacyAppService privacyAppService)
 {
     protected override async Task<MyTelegram.Schema.Account.IPrivacyRules> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Account.RequestSetPrivacy obj)
     {
-        var output = await privacyAppService.SetPrivacyAsync(input.ToRequestInfo(), input.UserId, obj.Key, obj.Rules);
+        var output = await privacyAppService.SetPrivacyAsync(input.ToRequestInfo(), input.UserId, obj.Key, obj.Rules.ToList());
         return new TPrivacyRules
         {
             Rules = new TVector<IPrivacyRule>(output.Rules),

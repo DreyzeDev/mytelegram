@@ -228,6 +228,24 @@ public class ChannelAggregate : MyInMemorySnapshotAggregateRoot<ChannelAggregate
         ));
     }
 
+    public void TransferChannelOwnership(RequestInfo requestInfo, long newCreatorUserId)
+    {
+        Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
+
+        if (_state.CreatorId != requestInfo.UserId)
+        {
+            RpcErrors.RpcErrors400.ChatAdminRequired.ThrowRpcError();
+        }
+
+        if (newCreatorUserId == _state.CreatorId)
+        {
+            RpcErrors.RpcErrors400.UserCreator.ThrowRpcError();
+        }
+
+        var oldCreatorId = _state.CreatorId;
+        Emit(new ChannelCreatorTransferredEvent(requestInfo, _state.ChannelId, oldCreatorId, newCreatorUserId));
+    }
+
     public void EditChannelDefaultBannedRights(RequestInfo requestInfo,
         ChatBannedRights defaultBannedRights,
         long selfUserId)
@@ -327,6 +345,17 @@ public class ChannelAggregate : MyInMemorySnapshotAggregateRoot<ChannelAggregate
     {
         Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
         Emit(new SetChannelPtsEvent(senderPeerId, pts, messageId, date));
+    }
+
+    public void SetAvailableReactions(RequestInfo requestInfo,
+        ReactionType reactionType,
+        List<string> availableReactions,
+        bool allowCustom,
+        int? reactionsLimit)
+    {
+        Specs.AggregateIsCreated.ThrowDomainErrorIfNotSatisfied(this);
+        CheckAdminRights(requestInfo, rights => rights.ChangeInfo);
+        Emit(new ChannelAvailableReactionsChangedEvent(requestInfo, _state.ChannelId, reactionType, availableReactions, allowCustom, reactionsLimit));
     }
 
     public void ToggleChannelNoForwards(RequestInfo requestInfo, bool enabled)

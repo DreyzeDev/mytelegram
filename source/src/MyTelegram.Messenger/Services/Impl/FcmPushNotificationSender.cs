@@ -10,11 +10,11 @@ public class FcmOptions
 public class FcmPushNotificationSender(
     IQueryProcessor queryProcessor,
     IOptions<FcmOptions> options,
-    ILogger<FcmPushNotificationSender> logger,
-    IHttpClientFactory httpClientFactory)
+    ILogger<FcmPushNotificationSender> logger)
     : IPushNotificationSender, ITransientDependency
 {
     private const string FcmEndpoint = "https://fcm.googleapis.com/fcm/send";
+    private static readonly HttpClient _httpClient = new();
     private readonly FcmOptions _options = options.Value;
 
     public async Task SendAsync(long userId, string title, string body, PushNotificationCustomData? custom = null)
@@ -42,11 +42,10 @@ public class FcmPushNotificationSender(
             };
 
             var json = System.Text.Json.JsonSerializer.Serialize(payload);
-            var client = httpClientFactory.CreateClient("fcm");
             using var request = new HttpRequestMessage(HttpMethod.Post, FcmEndpoint);
             request.Headers.TryAddWithoutValidation("Authorization", $"key={_options.ServerKey}");
             request.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            var response = await client.SendAsync(request);
+            var response = await _httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
                 logger.LogWarning("FCM send failed: {StatusCode}", response.StatusCode);
         }

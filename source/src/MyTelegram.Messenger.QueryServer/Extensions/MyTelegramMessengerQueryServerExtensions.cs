@@ -66,7 +66,6 @@ public static class MyTelegramMessengerQueryServerExtensions
         });
 
         services.AddMyTelegramMessengerServices();
-        services.AddHttpClient("fcm");
         services.AddTransient<IQueryOnlyReadModelStore<IAccessHashReadModel>, MongoDbQueryOnlyReadModelStore<IAccessHashReadModel>>();
         BsonSerializer.RegisterSerializer(typeof(IAccessHashReadModel), new ImpliedImplementationInterfaceSerializer<IAccessHashReadModel, AccessHashReadModel>());
 

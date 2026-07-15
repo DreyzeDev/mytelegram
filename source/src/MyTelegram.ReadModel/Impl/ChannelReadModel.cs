@@ -34,7 +34,8 @@ public class ChannelReadModel : ReadModelBase, IChannelReadModel,
     IAmReadModelFor<ChannelAggregate, ChannelId, PreHistoryHiddenChangedEvent>,
     IAmReadModelFor<ChannelAggregate, ChannelId, ChannelParticipantsHiddenUpdatedEvent>,
     IAmReadModelFor<ChannelAggregate, ChannelId, ChannelJoinRequestUpdatedEvent>,
-	    IAmReadModelFor<ChannelAggregate, ChannelId, ChannelAdminRemovedEvent>
+	    IAmReadModelFor<ChannelAggregate, ChannelId, ChannelAdminRemovedEvent>,
+    IAmReadModelFor<ChannelAggregate, ChannelId, ChannelCreatorTransferredEvent>
 {
     public string? About { get; private set; }
     public long AccessHash { get; private set; }
@@ -443,6 +444,28 @@ public class ChannelReadModel : ReadModelBase, IChannelReadModel,
     public Task ApplyAsync(IReadModelContext context, IDomainEvent<ChannelAggregate, ChannelId, ChannelAdminRemovedEvent> domainEvent, CancellationToken cancellationToken)
     {
         AdminList = domainEvent.AggregateEvent.AdminList;
+
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context, IDomainEvent<ChannelAggregate, ChannelId, ChannelCreatorTransferredEvent> domainEvent, CancellationToken cancellationToken)
+    {
+        var aggregateEvent = domainEvent.AggregateEvent;
+        var oldCreatorId = aggregateEvent.OldCreatorId;
+        CreatorId = aggregateEvent.NewCreatorUserId;
+
+        var newCreatorAdmin = AdminList.FirstOrDefault(p => p.UserId == aggregateEvent.NewCreatorUserId);
+        if (newCreatorAdmin != null)
+        {
+            newCreatorAdmin.SetAdminRights(ChatAdminRights.GetCreatorRights());
+        }
+        else
+        {
+            AdminList.Add(new ChatAdmin(oldCreatorId, true, aggregateEvent.NewCreatorUserId, ChatAdminRights.GetCreatorRights(), string.Empty));
+        }
+
+        var oldCreatorAdmin = AdminList.FirstOrDefault(p => p.UserId == oldCreatorId);
+        oldCreatorAdmin?.SetAdminRights(ChatAdminRights.GetCreatorRights());
 
         return Task.CompletedTask;
     }

@@ -1,4 +1,4 @@
-﻿using MyTelegram.Schema;
+using MyTelegram.Schema;
 
 namespace MyTelegram.Queries;
 
@@ -486,6 +486,8 @@ public record GetBotCallbackAnswerQuery(long PeerId, long QueryId) : IQuery<IBot
 
 public record GetBotByUserNameQuery(long OwnerUserId, string UserName) : IQuery<IBotReadModel?>;
 
+public record GetBotByTokenQuery(string Token) : IQuery<IBotReadModel?>;
+
 public record GetBotsCountQuery(long OwnerUserId) : IQuery<int>;
 
 public record GetMaxBotUserIdQuery : IQuery<long>;
@@ -588,6 +590,20 @@ public record GetStickerSetsByNamesQuery(List<string> StickerSetShortNames) : IQ
 public record GetStickerSetTotalCountQuery : IQuery<int>;
 public record GetUserStickerConfigQuery(long UserId) : IQuery<IUserStickerConfigReadModel?>;
 public record SearchStickerSetQuery(string Q, int Limit) : IQuery<IReadOnlyCollection<IStickerSetReadModel>>;
+
+public record GetStickerSetsByCreatorUserIdQuery(long CreatorUserId, long OffsetId, int Limit)
+    : IQuery<IReadOnlyCollection<IStickerSetReadModel>>;
+
+public record SearchStickerSetsByTypeQuery(StickerSetType StickerSetType, string Q, int Limit)
+    : IQuery<IReadOnlyCollection<IStickerSetReadModel>>;
+
+public record GetFeaturedStickerSetsPagedQuery(StickerSetType StickerSetType, int Offset, int Limit)
+    : IQuery<IReadOnlyCollection<IStickerSetReadModel>>;
+
+public record GetFavedStickersQuery(long UserId, int Limit) : IQuery<IReadOnlyCollection<IFaveStickerReadModel>>;
+
+public record GetRecentStickersQuery(long UserId, bool Attached, int Limit)
+    : IQuery<IReadOnlyCollection<IRecentStickerReadModel>>;
 public record GetChannelUserNameByChannelIdQuery(long ChannelId) : IQuery<string?>;
 public record GetScheduledMessagesQuery(long UserId, long ToPeerId, List<int> MessageIds) : IQuery<IReadOnlyCollection<IScheduleMessageReadModel>>;
 public record GetScheduleMessagesByDateQuery(int MaxScheduleDate) : IQuery<IReadOnlyCollection<ScheduleItem>>;
@@ -628,6 +644,10 @@ public record GetStoryViewsListQuery(long OwnerPeerId, int StoryId, int Offset, 
 public record GetStoryReactionsListQuery(long OwnerPeerId, int StoryId, long? ReactionId, int Offset, int Limit) : IQuery<IReadOnlyCollection<IStoryViewDetailsReadModel>>;
 public record GetStoryReactionDetailsListQuery(long OwnerPeerId, List<int> StoryIds, long UserId) : IQuery<IReadOnlyCollection<IStoryViewDetailsReadModel>>;
 public record GetStoryReactionUniqueCountQuery(long OwnerPeerId, int StoryId) : IQuery<int>;
+public record GetStoryAlbumsByPeerQuery(long OwnerPeerId) : IQuery<IReadOnlyCollection<IStoryAlbumReadModel>>;
+public record GetStoryAlbumByIdQuery(long OwnerPeerId, int AlbumId) : IQuery<IStoryAlbumReadModel?>;
+public record GetStoryAlbumStoriesQuery(long OwnerPeerId, int AlbumId) : IQuery<IReadOnlyCollection<IStoryReadModel>>;
+public record GetPhoneCallByIdQuery(long CallId) : IQuery<IPhoneCallReadModel?>;
 public record GetWebPageQuery(string Url) : IQuery<IWebPageReadModel?>;
 public record GetMessageSenderUserIdListQuery(long ChannelId, List<int> MessageIds) : IQuery<IReadOnlyCollection<long>>;
 public record GetEffectByIdQuery(long Id) : IQuery<IEffectReadModel?>;
@@ -671,6 +691,8 @@ public record GetDeviceByHashQuery(long UserId, long Hash) : IQuery<IDeviceReadM
 public record GetAccessHashQueryByIdQuery(long Id) : IQuery<IAccessHashReadModel?>;
 
 public record GetDocumentByIdQuery(long Id) : IQuery<IDocumentReadModel?>;
+
+public record GetDocumentByHashQuery(byte[] Sha256Hash, long Size, string MimeType) : IQuery<IDocumentReadModel?>;
 
 public record GetDocumentIdByMd5Query(string Md5) : IQuery<long?>;
 

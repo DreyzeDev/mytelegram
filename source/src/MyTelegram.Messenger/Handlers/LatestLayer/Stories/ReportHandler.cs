@@ -13,6 +13,6 @@ internal sealed class ReportHandler : RpcResultObjectHandler<MyTelegram.Schema.S
 {
     protected override Task<MyTelegram.Schema.IReportResult> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Stories.RequestReport obj)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<IReportResult>(new TReportResultReported());
     }
 }

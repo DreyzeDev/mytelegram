@@ -1,4 +1,4 @@
-﻿using EventFlow.Queries;
+using EventFlow.Queries;
 using EventFlow.ReadStores.InMemory.Queries;
 using MyTelegram.Domain.Aggregates.AppCode;
 using MyTelegram.Domain.Aggregates.Channel;
@@ -20,6 +20,10 @@ using MyTelegram.Domain.Aggregates.Theme;
 using MyTelegram.Domain.Aggregates.BusinessChatLink;
 using MyTelegram.Domain.Aggregates.ChatlistInvite;
 using MyTelegram.Domain.Aggregates.QuickReplyShortcut;
+using MyTelegram.Domain.Aggregates.Story;
+using MyTelegram.Domain.Aggregates.PhoneCall;
+using MyTelegram.Domain.Aggregates.Bot;
+using MyTelegram.Domain.Aggregates.EncryptedChat;
 using MyTelegram.Domain.Aggregates.Updates;
 using MyTelegram.Domain.Aggregates.User;
 using MyTelegram.Domain.Aggregates.UserName;
@@ -128,6 +132,12 @@ public static class MyTelegramReadModelInMemoryExtensions
             .UseMyInMemoryReadStoreFor<ChatlistInviteAggregate, ChatlistInviteId, ChatlistInviteReadModel>()
             .UseMyInMemoryReadStoreFor<QuickReplyShortcutAggregate, QuickReplyShortcutId, QuickReplyShortcutReadModel>()
             .UseMyInMemoryReadStoreFor<StoryAggregate, StoryId, StoryReadModel>()
+            .UseMyInMemoryReadStoreFor<StoryAlbumAggregate, StoryAlbumId, StoryAlbumReadModel>()
+            .UseMyInMemoryReadStoreFor<PhoneCallAggregate, PhoneCallId, PhoneCallReadModel>()
+            .UseMyInMemoryReadStoreFor<EncryptedChatAggregate, EncryptedChatId, EncryptedChatReadModel>()
+            .UseMyInMemoryReadStoreFor<EncryptedMessageAggregate, EncryptedMessageId, EncryptedMessageReadModel>()
+            .UseMyInMemoryReadStoreFor<BotAggregate, BotId, BotReadModel>()
+            .UseMyInMemoryReadStoreFor<BotAggregate, BotId, BotMenuReadModel>()
             ;
 
         return options;

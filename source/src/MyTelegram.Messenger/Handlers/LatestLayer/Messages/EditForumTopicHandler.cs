@@ -14,7 +14,8 @@ internal sealed class EditForumTopicHandler(ICommandBus commandBus)
 {
     protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditForumTopic obj)
     {
-        if (obj.Peer is not TInputPeerChannel inputPeerChannel)
+        var inputPeerChannel = obj.Peer as TInputPeerChannel;
+        if (inputPeerChannel is null)
             RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
 
         var channelId = inputPeerChannel!.ChannelId;

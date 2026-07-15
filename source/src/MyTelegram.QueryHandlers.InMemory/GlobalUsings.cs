@@ -1,7 +1,7 @@
-﻿global using EventFlow;
+global using EventFlow;
 global using EventFlow.Extensions;
 global using EventFlow.Queries;
-//global using MyTelegram.Domain.Aggregates.Bot;
+global using MyTelegram.Domain.Aggregates.Bot;
 global using MyTelegram.Domain.Aggregates.Contact;
 global using MyTelegram.EventFlow.ReadStores;
 global using MyTelegram.Queries;
@@ -42,6 +42,8 @@ global using JoinChannelRequestReadModel = MyTelegram.ReadModel.InMemory.JoinCha
 global using PrivacyReadModel = MyTelegram.ReadModel.InMemory.PrivacyReadModel;
 global using StickerSetReadModel = MyTelegram.ReadModel.InMemory.StickerSetReadModel;
 global using InstalledStickerSetReadModel = MyTelegram.ReadModel.InMemory.InstalledStickerSetReadModel;
+global using FaveStickerReadModel = MyTelegram.ReadModel.InMemory.FaveStickerReadModel;
+global using RecentStickerReadModel = MyTelegram.ReadModel.InMemory.RecentStickerReadModel;
 global using DocumentReadModel = MyTelegram.ReadModel.InMemory.DocumentReadModel;
 global using ForumTopicReadModel = MyTelegram.ReadModel.InMemory.ForumTopicReadModel;
 global using PushDeviceReadModel = MyTelegram.ReadModel.InMemory.PushDeviceReadModel;
@@ -52,3 +54,9 @@ global using BusinessChatLinkReadModel = MyTelegram.ReadModel.InMemory.BusinessC
 global using ChatlistInviteReadModel = MyTelegram.ReadModel.InMemory.ChatlistInviteReadModel;
 global using QuickReplyShortcutReadModel = MyTelegram.ReadModel.InMemory.QuickReplyShortcutReadModel;
 global using StoryReadModel = MyTelegram.ReadModel.InMemory.StoryReadModel;
+global using StoryAlbumReadModel = MyTelegram.ReadModel.InMemory.StoryAlbumReadModel;
+global using PhoneCallReadModel = MyTelegram.ReadModel.InMemory.PhoneCallReadModel;
+global using EncryptedChatReadModel = MyTelegram.ReadModel.InMemory.EncryptedChatReadModel;
+global using EncryptedMessageReadModel = MyTelegram.ReadModel.InMemory.EncryptedMessageReadModel;
+global using BotReadModel = MyTelegram.ReadModel.InMemory.BotReadModel;
+global using BotMenuReadModel = MyTelegram.ReadModel.InMemory.BotMenuReadModel;

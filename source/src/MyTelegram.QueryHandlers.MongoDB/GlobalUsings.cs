@@ -1,4 +1,4 @@
-﻿global using EventFlow;
+global using EventFlow;
 global using EventFlow.Extensions;
 global using EventFlow.MongoDB.ReadStores;
 global using EventFlow.Queries;
@@ -11,7 +11,9 @@ global using MyTelegram.Queries;
 global using System.Linq.Expressions;
 global using AccessHashReadModel = MyTelegram.ReadModel.MongoDB.AccessHashReadModel;
 global using AppCodeReadModel = MyTelegram.ReadModel.MongoDB.AppCodeReadModel;
-//global using BotReadModel = MyTelegram.ReadModel.MongoDB.BotReadModel;
+global using BotReadModel = MyTelegram.ReadModel.MongoDB.BotReadModel;
+global using BotMenuReadModel = MyTelegram.ReadModel.MongoDB.BotMenuReadModel;
+global using MyTelegram.Domain.Aggregates.Bot;
 global using ChannelFullReadModel = MyTelegram.ReadModel.MongoDB.ChannelFullReadModel;
 global using ChannelMemberReadModel = MyTelegram.ReadModel.MongoDB.ChannelMemberReadModel;
 global using ChannelReadModel = MyTelegram.ReadModel.MongoDB.ChannelReadModel;
@@ -47,6 +49,8 @@ global using MessageTokenReadModel = MyTelegram.ReadModel.MongoDB.MessageTokenRe
 global using PrivacyReadModel = MyTelegram.ReadModel.MongoDB.PrivacyReadModel;
 global using StickerSetReadModel = MyTelegram.ReadModel.MongoDB.StickerSetReadModel;
 global using InstalledStickerSetReadModel = MyTelegram.ReadModel.MongoDB.InstalledStickerSetReadModel;
+global using FaveStickerReadModel = MyTelegram.ReadModel.MongoDB.FaveStickerReadModel;
+global using RecentStickerReadModel = MyTelegram.ReadModel.MongoDB.RecentStickerReadModel;
 global using DocumentReadModel = MyTelegram.ReadModel.MongoDB.DocumentReadModel;
 global using ForumTopicReadModel = MyTelegram.ReadModel.MongoDB.ForumTopicReadModel;
 global using PushDeviceReadModel = MyTelegram.ReadModel.MongoDB.PushDeviceReadModel;
@@ -57,3 +61,7 @@ global using BusinessChatLinkReadModel = MyTelegram.ReadModel.MongoDB.BusinessCh
 global using ChatlistInviteReadModel = MyTelegram.ReadModel.MongoDB.ChatlistInviteReadModel;
 global using QuickReplyShortcutReadModel = MyTelegram.ReadModel.MongoDB.QuickReplyShortcutReadModel;
 global using StoryReadModel = MyTelegram.ReadModel.MongoDB.StoryReadModel;
+global using StoryAlbumReadModel = MyTelegram.ReadModel.MongoDB.StoryAlbumReadModel;
+global using PhoneCallReadModel = MyTelegram.ReadModel.MongoDB.PhoneCallReadModel;
+global using EncryptedChatReadModel = MyTelegram.ReadModel.MongoDB.EncryptedChatReadModel;
+global using EncryptedMessageReadModel = MyTelegram.ReadModel.MongoDB.EncryptedMessageReadModel;

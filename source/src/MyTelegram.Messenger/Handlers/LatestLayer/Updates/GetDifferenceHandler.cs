@@ -60,6 +60,9 @@ internal sealed class GetDifferenceHandler(IMessageAppService messageAppService,
         chats.AddRange(channelUpdatesReadModels.SelectMany(p => p.Chats ?? []).ToList());
         chats.AddRange(channelUpdatesReadModels.Select(p => p.OwnerPeerId));
         var dto = await messageAppService.GetChannelDifferenceAsync(new GetDifferenceInput(input.UserId, input.UserId, obj.Pts, limit, messageIds, users, chats));
+
+        var encryptedMessageReadModels = await queryProcessor.ProcessAsync(new GetEncryptedMessagesQuery(input.UserId, input.PermAuthKeyId, obj.Qts));
+
         var allUpdateList = updatesReadModels.Where(p => p.UpdatesType == UpdatesType.Updates).SelectMany(p => p.Updates ?? []).ToList();
         allUpdateList.AddRange(channelUpdatesReadModels.Where(p => p.UpdatesType == UpdatesType.Updates).SelectMany(p => p.Updates ?? []));
         allUpdateList.AddRange(userUpdates.SelectMany(p => p.Updates ?? []));
@@ -73,7 +76,7 @@ internal sealed class GetDifferenceHandler(IMessageAppService messageAppService,
         }
 
         dto.MessageList = dto.MessageList.OrderBy(p => p.MessageId).ToList();
-        var r = differenceConverterService.ToDifference(input, dto, ptsReadModel, cachedPts, limit, allUpdateList, [], [], layer: input.Layer);
+        var r = differenceConverterService.ToDifference(input, dto, ptsReadModel, cachedPts, limit, allUpdateList, [], encryptedMessageReadModels, layer: input.Layer);
         //logger.LogInformation("{UserId},Layer={Layer},res:{@Res}", input.UserId, input.Layer, r);
         return r;
     }

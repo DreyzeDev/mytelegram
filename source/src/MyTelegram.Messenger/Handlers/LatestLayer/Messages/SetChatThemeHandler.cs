@@ -1,3 +1,5 @@
+using MyTelegram.Domain.Aggregates.PeerSetting;
+
 namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <summary>
 /// Change the chat theme of a certain chat, see <a href="https://corefork.telegram.org/api/themes#chat-themes">here »</a> for more info.
@@ -11,10 +13,29 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class SetChatThemeHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestSetChatTheme, MyTelegram.Schema.IUpdates>
+internal sealed class SetChatThemeHandler(IPeerHelper peerHelper, ICommandBus commandBus) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestSetChatTheme, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestSetChatTheme obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestSetChatTheme obj)
     {
-        throw new NotImplementedException();
+        var peer = peerHelper.GetPeer(obj.Peer, input.UserId);
+
+        string? themeEmoji = null;
+        string? themeGiftSlug = null;
+        switch (obj.Theme)
+        {
+            case TInputChatThemeEmpty:
+                break;
+            case TInputChatTheme inputChatTheme:
+                themeEmoji = inputChatTheme.Emoticon;
+                break;
+            case TInputChatThemeUniqueGift inputChatThemeUniqueGift:
+                themeGiftSlug = inputChatThemeUniqueGift.Slug;
+                break;
+        }
+
+        var command = new SetChatThemeCommand(PeerSettingsId.Create(input.UserId, peer.PeerId), input.ToRequestInfo(), peer.PeerId, themeEmoji, themeGiftSlug);
+        await commandBus.PublishAsync(command);
+
+        return null!;
     }
 }

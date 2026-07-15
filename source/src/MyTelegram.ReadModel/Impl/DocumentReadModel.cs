@@ -25,6 +25,7 @@ public class DocumentReadModel : ReadModelBase, IDocumentReadModel,
     public string MimeType { get; private set; } = string.Empty;
     public string? Name { get; private set; }
     public long Size { get; private set; }
+    public byte[]? Sha256Hash { get; private set; }
     //public byte[]? Stickers { get; private set; }
     public long? ThumbId { get; private set; }
 

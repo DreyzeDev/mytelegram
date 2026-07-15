@@ -29,7 +29,6 @@ internal sealed class UpdateThemeHandler(ICommandBus commandBus, IQueryProcessor
 
         var command = new UpdateThemeCommand(
             ThemeId.Create(theme!.CreatorUserId, theme.Theme.Slug),
-            input.ToRequestInfo(),
             obj.Slug,
             obj.Title,
             null,

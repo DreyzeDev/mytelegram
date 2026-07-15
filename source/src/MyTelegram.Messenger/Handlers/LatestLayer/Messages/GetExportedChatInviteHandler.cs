@@ -14,10 +14,37 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class GetExportedChatInviteHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetExportedChatInvite, MyTelegram.Schema.Messages.IExportedChatInvite>
+internal sealed class GetExportedChatInviteHandler(IPeerHelper peerHelper, IQueryProcessor queryProcessor, IAccessHashHelper accessHashHelper, IChannelAppService channelAppService, IChatInviteLinkHelper chatInviteLinkHelper, IUserConverterService userConverterService, IChatInviteExportedConverterService chatInviteExportedConverterService) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestGetExportedChatInvite, MyTelegram.Schema.Messages.IExportedChatInvite>
 {
-    protected override Task<MyTelegram.Schema.Messages.IExportedChatInvite> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetExportedChatInvite obj)
+    protected override async Task<MyTelegram.Schema.Messages.IExportedChatInvite> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestGetExportedChatInvite obj)
     {
-        throw new NotImplementedException();
+        var peer = peerHelper.GetPeer(obj.Peer, input.UserId);
+        if (peer.PeerType is not (PeerType.Channel or PeerType.Chat))
+        {
+            RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+        }
+
+        await accessHashHelper.CheckAccessHashAsync(input, obj.Peer);
+        var channelReadModel = await channelAppService.GetAsync(peer.PeerId);
+        channelReadModel.ThrowExceptionIfChannelDeleted();
+        if (channelReadModel!.AdminList.All(p => p.UserId != input.UserId))
+        {
+            RpcErrors.RpcErrors400.ChatAdminRequired.ThrowRpcError();
+        }
+
+        var link = chatInviteLinkHelper.GetHashFromLink(obj.Link);
+        var chatInviteReadModel = await queryProcessor.ProcessAsync(new GetChatInviteQuery(peer.PeerId, link));
+        if (chatInviteReadModel == null)
+        {
+            RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+        }
+
+        var invite = chatInviteExportedConverterService.ToExportedChatInvite(chatInviteReadModel!, input.Layer);
+        var users = await userConverterService.GetUserListAsync(input, [chatInviteReadModel!.AdminId], false, false, input.Layer);
+        return new TExportedChatInvite
+        {
+            Invite = invite,
+            Users = [..users]
+        };
     }
 }

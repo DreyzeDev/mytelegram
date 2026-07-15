@@ -10,10 +10,33 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class EditFactCheckHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditFactCheck, MyTelegram.Schema.IUpdates>
+internal sealed class EditFactCheckHandler(IQueryProcessor queryProcessor, ICommandBus commandBus, IAccessHashHelper accessHashHelper) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestEditFactCheck, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditFactCheck obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestEditFactCheck obj)
     {
-        throw new NotImplementedException();
+        await accessHashHelper.CheckAccessHashAsync(input, obj.Peer);
+
+        var peer = obj.Peer.ToPeer(input.UserId);
+        var ownerPeerId = peer.PeerId;
+        if (peer.PeerType != PeerType.Channel)
+        {
+            ownerPeerId = input.UserId;
+        }
+
+        var messageId = MessageId.Create(ownerPeerId, obj.MsgId);
+        var messageReadModel = await queryProcessor.ProcessAsync(new GetMessageByIdQuery(messageId.Value));
+        if (messageReadModel == null)
+        {
+            RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+        }
+
+        // Note: the fact-checker's own country is not supplied by RequestEditFactCheck, only the text is;
+        // the country is derived server-side (not implemented here, so it is left unset).
+        var factCheckHash = (long)(uint)(obj.Text.Text ?? string.Empty).GetHashCode();
+
+        var command = new SetFactCheckCommand(messageId, input.ToRequestInfo(), ownerPeerId, obj.MsgId, null, obj.Text, factCheckHash);
+        await commandBus.PublishAsync(command);
+
+        return new TUpdates { Chats = [], Updates = [], Users = [], Date = CurrentDate };
     }
 }

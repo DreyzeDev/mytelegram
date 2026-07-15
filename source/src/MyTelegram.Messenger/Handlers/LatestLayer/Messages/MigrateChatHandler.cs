@@ -13,10 +13,27 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class MigrateChatHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestMigrateChat, MyTelegram.Schema.IUpdates>
+internal sealed class MigrateChatHandler(IChannelAppService channelAppService, IChannelAdminRightsChecker channelAdminRightsChecker, IChatConverterService chatConverterService, IPhotoAppService photoAppService, IQueryProcessor queryProcessor) : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestMigrateChat, MyTelegram.Schema.IUpdates>
 {
-    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestMigrateChat obj)
+    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestMigrateChat obj)
     {
-        throw new NotImplementedException();
+        var channelReadModel = await channelAppService.GetAsync(obj.ChatId);
+        channelReadModel.ThrowExceptionIfChannelDeleted();
+        await channelAdminRightsChecker.CheckAdminRightAsync(obj.ChatId, input.UserId, adminRights => adminRights.ChangeInfo, RpcErrors.RpcErrors403.ChatAdminRequired);
+
+        // Basic chats are already internally represented as (mega-group) channels in this server,
+        // so there is no structural migration to perform - we simply hand back the channel as-is.
+        var channelMemberReadModels = await queryProcessor.ProcessAsync(new GetChannelMemberListByChannelIdListQuery(input.UserId, [channelReadModel!.ChannelId]));
+        var photoReadModels = await photoAppService.GetPhotosAsync([channelReadModel]);
+        var channelList = chatConverterService.ToChannelList(input, [channelReadModel], photoReadModels, channelMemberReadModels, layer: input.Layer);
+
+        return new TUpdates
+        {
+            Updates = [],
+            Users = [],
+            Chats = [..channelList],
+            Date = CurrentDate,
+            Seq = 0
+        };
     }
 }

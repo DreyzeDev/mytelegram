@@ -23,8 +23,7 @@ internal sealed class DeleteQuickReplyShortcutHandler(ICommandBus commandBus, IQ
         }
 
         var command = new DeleteShortcutCommand(
-            QuickReplyShortcutId.Create(input.UserId, obj.ShortcutId),
-            input.ToRequestInfo());
+            QuickReplyShortcutId.Create(input.UserId, obj.ShortcutId));
         await commandBus.PublishAsync(command, default);
         return new TBoolTrue();
     }

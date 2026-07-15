@@ -13,10 +13,21 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class DiscardEncryptionHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestDiscardEncryption, IBool>
+internal sealed class DiscardEncryptionHandler(ICommandBus commandBus, IQueryProcessor queryProcessor, IObjectMessageSender messageSender)
+    : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestDiscardEncryption, IBool>
 {
-    protected override Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestDiscardEncryption obj)
+    protected override async Task<IBool> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestDiscardEncryption obj)
     {
-        throw new NotImplementedException();
+        var chat = await queryProcessor.ProcessAsync(new GetEncryptedChatByIdQuery(obj.ChatId), default);
+        if (chat == null)
+            RpcErrors.RpcErrors400.ChatIdInvalid.ThrowRpcError();
+
+        var command = new DiscardEncryptedChatCommand(
+            EncryptedChatId.Create(obj.ChatId),
+            obj.DeleteHistory);
+        await commandBus.PublishAsync(command, default);
+
+
+        return new TBoolTrue();
     }
 }

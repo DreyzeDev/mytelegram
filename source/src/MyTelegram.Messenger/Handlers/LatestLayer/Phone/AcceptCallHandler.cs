@@ -4,21 +4,62 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Phone;
 /// Possible errors
 /// Code Type Description
 /// 400 CALL_ALREADY_ACCEPTED The call was already accepted.
-/// 400 CALL_ALREADY_DECLINED The call was already declined.
-/// 500 CALL_OCCUPY_FAILED The call failed because the user is already making another call.
 /// 400 CALL_PEER_INVALID The provided call peer object is invalid.
-/// 406 CALL_PROTOCOL_COMPAT_LAYER_INVALID The other side of the call does not support any of the VoIP protocols supported by the local client, as specified by the <code>protocol.layer</code> and <code>protocol.library_versions</code> fields.
-/// 400 CALL_PROTOCOL_FLAGS_INVALID Call protocol flags invalid.
-/// 400 CALL_PROTOCOL_LAYER_INVALID The specified protocol layer version range is invalid.
 /// <para><c>See <a href="https://corefork.telegram.org/method/phone.acceptCall"/> </c></para>
 /// </summary>
 /// <remarks>
 /// Access: [User ✔] [Bot ✖] [Anonymous ✖]
 /// </remarks>
-internal sealed class AcceptCallHandler : RpcResultObjectHandler<MyTelegram.Schema.Phone.RequestAcceptCall, MyTelegram.Schema.Phone.IPhoneCall>
+internal sealed class AcceptCallHandler(
+    ICommandBus commandBus,
+    IQueryProcessor queryProcessor,
+    IObjectMessageSender messageSender)
+    : RpcResultObjectHandler<MyTelegram.Schema.Phone.RequestAcceptCall, MyTelegram.Schema.Phone.IPhoneCall>
 {
-    protected override Task<MyTelegram.Schema.Phone.IPhoneCall> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Phone.RequestAcceptCall obj)
+    protected override async Task<MyTelegram.Schema.Phone.IPhoneCall> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Phone.RequestAcceptCall obj)
     {
-        throw new NotImplementedException();
+        var peer = obj.Peer as TInputPhoneCall;
+        if (peer is null)
+            RpcErrors.RpcErrors400.CallPeerInvalid.ThrowRpcError();
+
+        var call = await queryProcessor.ProcessAsync(new GetPhoneCallByIdQuery(peer!.Id), default);
+        if (call == null)
+            RpcErrors.RpcErrors400.CallPeerInvalid.ThrowRpcError();
+
+        if (call!.CallState == "accepted" || call.CallState == "confirmed")
+            RpcErrors.RpcErrors400.CallAlreadyAccepted.ThrowRpcError();
+
+        var protocol = PhoneCallBuilderHelper.FromSchema(obj.Protocol);
+        var date = CurrentDate;
+
+        var command = new AcceptPhoneCallCommand(
+            PhoneCallId.Create(peer!.Id),
+            obj.GB, protocol, date);
+        await commandBus.PublishAsync(command, default);
+
+        var schemaProtocol = PhoneCallBuilderHelper.ToSchema(protocol);
+        var callAccepted = new TPhoneCallAccepted
+        {
+            Id = call.CallId,
+            AccessHash = call.AccessHash,
+            Date = call.Date,
+            AdminId = call.CallerId,
+            ParticipantId = call.CalleeId,
+            GB = obj.GB,
+            Protocol = schemaProtocol,
+            Video = call.IsVideo
+        };
+
+        // Push to caller
+        await messageSender.PushMessageToPeerAsync(
+            new Peer(PeerType.User, call.CallerId),
+            new TUpdateShort { Date = date, Update = new TUpdatePhoneCall { PhoneCall = callAccepted } },
+            excludeAuthKeyId: null);
+
+        return new MyTelegram.Schema.Phone.TPhoneCall
+        {
+            PhoneCall = callAccepted,
+            Users = []
+        };
     }
 }

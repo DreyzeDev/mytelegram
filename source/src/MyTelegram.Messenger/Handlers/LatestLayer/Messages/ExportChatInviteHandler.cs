@@ -25,17 +25,24 @@ internal sealed class ExportChatInviteHandler(ICommandBus commandBus, IIdGenerat
 {
     protected override async Task<MyTelegram.Schema.IExportedChatInvite> HandleCoreAsync(IRequestInput input, RequestExportChatInvite obj)
     {
-        if (obj.Peer is TInputPeerChannel inputPeerChannel)
+        long? channelIdFromPeer = obj.Peer switch
         {
-            var chatInviteId = await idGenerator.NextLongIdAsync(IdType.InviteId, inputPeerChannel.ChannelId);
+            TInputPeerChannel inputPeerChannel => inputPeerChannel.ChannelId,
+            TInputPeerChat inputPeerChat => inputPeerChat.ChatId,
+            _ => null
+        };
+
+        if (channelIdFromPeer is { } channelId)
+        {
+            var chatInviteId = await idGenerator.NextLongIdAsync(IdType.InviteId, channelId);
             var inviteHash = chatInviteLinkHelper.GenerateInviteLink();
-            var channelReadModel = await channelAppService.GetAsync(inputPeerChannel.ChannelId);
+            var channelReadModel = await channelAppService.GetAsync(channelId);
             if (channelReadModel == null !)
             {
                 RpcErrors.RpcErrors400.ChannelIdInvalid.ThrowRpcError();
             }
 
-            await channelAdminRightsChecker.CheckAdminRightAsync(inputPeerChannel.ChannelId, input.UserId, (p) => p.ChangeInfo, RpcErrors.RpcErrors403.ChatAdminRequired);
+            await channelAdminRightsChecker.CheckAdminRightAsync(channelId, input.UserId, (p) => p.ChangeInfo, RpcErrors.RpcErrors403.ChatAdminRequired);
             if (obj.LegacyRevokePermanent)
             {
                 var chatInviteReadModel = await queryProcessor.ProcessAsync(new GetPermanentChatInviteQuery(channelReadModel!.ChannelId, input.UserId));
@@ -46,7 +53,7 @@ internal sealed class ExportChatInviteHandler(ICommandBus commandBus, IIdGenerat
                 }
             }
 
-            var command = new CreateChatInviteCommand(ChatInviteId.Create(inputPeerChannel.ChannelId, chatInviteId), input.ToRequestInfo(), inputPeerChannel.ChannelId, chatInviteId, inviteHash, input.UserId, obj.Title, obj.RequestNeeded, null, obj.ExpireDate, obj.UsageLimit, obj.LegacyRevokePermanent, CurrentDate, channelReadModel!.Broadcast);
+            var command = new CreateChatInviteCommand(ChatInviteId.Create(channelId, chatInviteId), input.ToRequestInfo(), channelId, chatInviteId, inviteHash, input.UserId, obj.Title, obj.RequestNeeded, null, obj.ExpireDate, obj.UsageLimit, obj.LegacyRevokePermanent, CurrentDate, channelReadModel!.Broadcast);
             await commandBus.PublishAsync(command);
             return null !;
         }

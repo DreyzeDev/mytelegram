@@ -4,6 +4,8 @@ public interface IForumTopicReadModel : IReadModel
 {
     long ChannelId { get; }
     int TopicId { get; }
+    long CreatorUserId { get; }
+    bool Hidden { get; }
     //ForumTopic ForumTopic { get; }
     string Title { get; }
     long? IconEmojiId { get; }

@@ -13,6 +13,11 @@ internal sealed class ToggleSuggestedPostApprovalHandler : RpcResultObjectHandle
 {
     protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestToggleSuggestedPostApproval obj)
     {
-        throw new NotImplementedException();
+        // Suggested posts (https://corefork.telegram.org/api/suggested-posts) are not modelled anywhere in
+        // MyTelegram.Domain yet: there is no aggregate/read-model state tracking a message as a "suggested post"
+        // or its approval status, so there is nothing here to approve/reject. Throw the one error this RPC
+        // documents (PEER_ID_INVALID) instead of faking success or leaving a NotImplementedException.
+        RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+        return null!;
     }
 }

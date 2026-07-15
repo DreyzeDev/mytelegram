@@ -11,8 +11,13 @@ namespace MyTelegram.Messenger.Handlers.LatestLayer.Messages;
 /// </remarks>
 internal sealed class ToggleTodoCompletedHandler : RpcResultObjectHandler<MyTelegram.Schema.Messages.RequestToggleTodoCompleted, MyTelegram.Schema.IUpdates>
 {
-    protected override async Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestToggleTodoCompleted obj)
+    protected override Task<MyTelegram.Schema.IUpdates> HandleCoreAsync(IRequestInput input, MyTelegram.Schema.Messages.RequestToggleTodoCompleted obj)
     {
-        throw new NotImplementedException();
+        // Todo lists (https://corefork.telegram.org/api/todo) only store their items via TMessageMediaToDo on the
+        // message (see AppendTodoListHandler), there is no per-item "completed" state tracked anywhere in
+        // MyTelegram.Domain/the read models. Rather than silently no-op or fake success (which would desync the
+        // client), throw the one error this RPC documents (PEER_ID_INVALID) until completion tracking is built.
+        RpcErrors.RpcErrors400.PeerIdInvalid.ThrowRpcError();
+        return null!;
     }
 }

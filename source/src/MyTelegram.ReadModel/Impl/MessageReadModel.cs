@@ -25,7 +25,8 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
     IAmReadModelFor<MessageAggregate, MessageId, MessageUnpinnedEvent>,
     IAmReadModelFor<MessageAggregate, MessageId, MessagePinnedUpdatedEvent>,
     IAmReadModelFor<MessageAggregate, MessageId, MessageReactionSentEvent>,
-    IAmReadModelFor<MessageAggregate, MessageId, MessageAutoDeleteTimerSetEvent>
+    IAmReadModelFor<MessageAggregate, MessageId, MessageAutoDeleteTimerSetEvent>,
+    IAmReadModelFor<MessageAggregate, MessageId, MessageFactCheckSetEvent>
 {
     public int Date { get; private set; }
     public int? EditDate { get; private set; }
@@ -97,6 +98,9 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
     public List<long>? MentionedUserIds { get; private set; }
     public long? TodoId { get; private set; }
     public ReadOnlyMemory<byte>? EncryptedData { get; private set; }
+    public string? FactCheckCountry { get; private set; }
+    public ITextWithEntities? FactCheckText { get; private set; }
+    public long FactCheckHash { get; private set; }
 
     public Task ApplyAsync(IReadModelContext context,
         IDomainEvent<MessageAggregate, MessageId, OutboxMessageCreatedEvent> domainEvent,
@@ -168,6 +172,9 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
         InvertMedia = messageItem.InvertMedia;
         MentionedUserIds = messageItem.MentionedUserIds;
         EncryptedData = messageItem.EncryptedData;
+        FactCheckCountry = messageItem.FactCheckCountry;
+        FactCheckText = messageItem.FactCheckText;
+        FactCheckHash = messageItem.FactCheckHash;
 
         return Task.CompletedTask;
     }
@@ -222,6 +229,9 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
 
         InvertMedia = messageItem.InvertMedia;
         EncryptedData = messageItem.EncryptedData;
+        FactCheckCountry = messageItem.FactCheckCountry;
+        FactCheckText = messageItem.FactCheckText;
+        FactCheckHash = messageItem.FactCheckHash;
 
         return Task.CompletedTask;
     }
@@ -460,6 +470,16 @@ public class MessageReadModel : ReadModelBase, IMessageReadModel,
             ExpirationTime = Date + e.TtlSeconds;
         else
             ExpirationTime = null;
+
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyAsync(IReadModelContext context, IDomainEvent<MessageAggregate, MessageId, MessageFactCheckSetEvent> domainEvent, CancellationToken cancellationToken)
+    {
+        var e = domainEvent.AggregateEvent;
+        FactCheckCountry = e.FactCheckCountry;
+        FactCheckText = e.FactCheckText;
+        FactCheckHash = e.FactCheckHash;
 
         return Task.CompletedTask;
     }
