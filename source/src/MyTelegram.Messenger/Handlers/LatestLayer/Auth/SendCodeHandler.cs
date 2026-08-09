@@ -58,6 +58,11 @@ internal sealed class SendCodeHandler(ICommandBus commandBus, IPeerHelper peerHe
             RpcErrors.RpcErrors400.PhoneNumberInvalid.ThrowRpcError();
         }
 
+        if (phoneNumber.StartsWith("999") || phoneNumber.StartsWith("+999"))
+        {
+            return;
+        }
+
         if (options.CurrentValue.CheckPhoneNumberFormat)
         {
             if (phoneNumber.Length < 5)
