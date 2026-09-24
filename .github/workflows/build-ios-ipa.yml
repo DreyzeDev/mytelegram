@@ -1,0 +1,119 @@
+name: Build MyTelegram iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_ip:
+        description: "IPv4 address of the MyTelegram server, reachable from the iPhone"
+        required: true
+        type: string
+        default: "192.168.1.106"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-26
+    timeout-minutes: 360
+
+    steps:
+      - name: Fetch native iOS client and submodules
+        run: |
+          git clone --depth 1 --recurse-submodules --shallow-submodules -j8 \
+            --branch master https://github.com/loyldg/mytelegram-iOS.git ios
+
+      - name: Select Xcode 26.4
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_26.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Connect client to MyTelegram server
+        env:
+          SERVER_IP: ${{ inputs.server_ip }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ipaddress
+          import os
+          import subprocess
+          from pathlib import Path
+
+          server_ip = str(ipaddress.IPv4Address(os.environ["SERVER_IP"].strip()))
+          root = Path("ios")
+          network_path = root / "submodules/TelegramCore/Sources/Network/Network.swift"
+          source = network_path.read_text(encoding="utf-8")
+
+          insertion_point = "#if os(iOS)\nprivate let cloudDataContext = Atomic<CloudDataContext?>(value: nil)\n#endif\n"
+          if source.count(insertion_point) != 1:
+              raise SystemExit("Unexpected upstream Network.swift layout; refusing to patch it.")
+          source = source.replace(insertion_point, insertion_point + '''
+          private func myTelegramServerIp() -> String {
+              let configuredValue = Bundle.main.object(forInfoDictionaryKey: "MyTelegramServerIP") as? String
+              guard let configuredValue else {
+                  return "192.168.1.106"
+              }
+              let trimmedValue = configuredValue.trimmingCharacters(in: .whitespacesAndNewlines)
+              return trimmedValue.isEmpty ? "192.168.1.106" : trimmedValue
+          }
+          ''', 1)
+
+          seed_list = "            let seedAddressList: [Int: [String]]\n"
+          if source.count(seed_list) != 1:
+              raise SystemExit("Could not find the upstream datacenter seed list.")
+          source = source.replace(seed_list, seed_list + "            let serverIp = myTelegramServerIp()\n", 1)
+          old_seed = '["192.168.1.100"]'
+          if source.count(old_seed) != 8:
+              raise SystemExit("Unexpected number of upstream seed addresses; refusing to patch it.")
+          source = source.replace(old_seed, "[serverIp]")
+          network_path.write_text(source, encoding="utf-8")
+
+          for relative_path in (
+              "Telegram/Telegram-iOS/Info.plist",
+              "Telegram/Telegram-iOS/InfoBazel.plist",
+          ):
+              plist_path = root / relative_path
+              subprocess.run(
+                  ["/usr/libexec/PlistBuddy", "-c", f"Add :MyTelegramServerIP string {server_ip}", str(plist_path)],
+                  check=True,
+              )
+              subprocess.run(
+                  [
+                      "/usr/libexec/PlistBuddy",
+                      "-c",
+                      "Add :NSLocalNetworkUsageDescription string MyTelegram uses your local network to connect to your MyTelegram server.",
+                      str(plist_path),
+                  ],
+                  check=True,
+              )
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write(f"Server endpoint embedded in this IPA: `{server_ip}:20443`\n")
+          PY
+
+      - name: Build IPA
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          BUILD_NUMBER=$((100000 + GITHUB_RUN_NUMBER))
+          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
+          python3 -u build-system/Make/Make.py \
+            --cacheDir="$HOME/telegram-bazel-cache" \
+            --overrideXcodeVersion \
+            build \
+            --configurationPath="build-system/appstore-configuration.json" \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$BUILD_NUMBER" \
+            --outputBuildArtifactsPath=build/artifacts
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mytelegram-ios-ipa
+          path: ios/build/artifacts/Telegram.ipa
+          if-no-files-found: error
+          retention-days: 7
+
