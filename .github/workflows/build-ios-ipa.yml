@@ -8,6 +8,14 @@ on:
         required: true
         type: string
         default: "192.168.1.106"
+      build_configuration:
+        description: "Use debug_arm64 to inspect a startup issue"
+        required: true
+        type: choice
+        default: "release_arm64"
+        options:
+          - "debug_arm64"
+          - "release_arm64"
 
 permissions:
   contents: read
@@ -95,6 +103,8 @@ jobs:
 
       - name: Build IPA
         working-directory: ios
+        env:
+          BUILD_CONFIGURATION: ${{ inputs.build_configuration }}
         run: |
           set -euo pipefail
           BUILD_NUMBER=$((100000 + GITHUB_RUN_NUMBER))
@@ -105,14 +115,14 @@ jobs:
             build \
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
-            --configuration=release_arm64 \
+            --configuration="$BUILD_CONFIGURATION" \
             --buildNumber="$BUILD_NUMBER" \
             --outputBuildArtifactsPath=build/artifacts
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mytelegram-ios-ipa
+          name: mytelegram-ios-${{ inputs.build_configuration }}
           path: ios/build/artifacts/Telegram.ipa
           if-no-files-found: error
           retention-days: 7
