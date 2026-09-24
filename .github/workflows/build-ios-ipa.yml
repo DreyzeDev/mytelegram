@@ -101,6 +101,35 @@ jobs:
               summary.write(f"Server endpoint embedded in this IPA: `{server_ip}:20443`\n")
           PY
 
+      - name: Disable Siri APIs unavailable to Sideloadly signing
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          configuration_path = Path("build-system/appstore-configuration.json")
+          configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+          if "enable_siri" not in configuration:
+              raise SystemExit("The iOS build configuration has no enable_siri setting.")
+          configuration["enable_siri"] = False
+          configuration_path.write_text(
+              json.dumps(configuration, indent="\t") + "\n",
+              encoding="utf-8",
+          )
+
+          app_delegate_path = Path("submodules/TelegramUI/Sources/AppDelegate.swift")
+          source = app_delegate_path.read_text(encoding="utf-8")
+          siri_request = "        }, requestSiriAuthorization: { completion in\n            if #available(iOS 10, *) {"
+          guarded_siri_request = "        }, requestSiriAuthorization: { completion in\n            guard buildConfig.isSiriEnabled else {\n                completion(false)\n                return\n            }\n            if #available(iOS 10, *) {"
+          if source.count(siri_request) != 1:
+              raise SystemExit("Unexpected Siri authorization code; refusing an unsafe patch.")
+          source = source.replace(siri_request, guarded_siri_request, 1)
+          app_delegate_path.write_text(source, encoding="utf-8")
+          print("Disabled Siri APIs that require an entitlement unavailable to Sideloadly.")
+          PY
+
       - name: Build IPA
         working-directory: ios
         env:
